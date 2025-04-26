@@ -1,0 +1,126 @@
+\section{Описание}
+Основная идея алгоритма решения задачи состоит в применении поразрядной сортировки, которая позволяет упорядочивать автомобильные номера в формате A 999 BC за 
+линейное время благодаря их структурированности. Для реализации необходимо обработать ключи по разрядам в порядке от младшего к старшему, начиная с цифр, 
+затем букв, при этом на каждом этапе применяется сортировка подсчетом для текущего разряда. Сортировка подсчетом идеально подходит, 
+поскольку разряды ключей ограничены фиксированным количеством значений (10 для цифр и 26 для каждой из буквенных групп). Тип значения,
+представляющий строки фиксированной длины до 64 символов, требует предварительной нормализации путем добавления нулевых символов, 
+чтобы все строки стали одинаковой длины. После нормализации строки участвуют в сортировке как привязанные к ключам данные и выводятся в соответствии с упорядоченными ключами,
+ при этом нулевые символы не отображаются в результате.
+
+\pagebreak
+
+\section{Исходный код}
+На каждой непустой строке входного файла располагается пара «ключ-значение», в которой ключ указан согласно заданию, затем следует знак табуляции и указано соответствующее значение. 
+
+\begin{lstlisting}[language=C]
+	#include <bits/stdc++.h>
+using namespace std;
+
+struct Entry {
+    array<uint8_t, 6> key;
+    char value[65];
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    vector<Entry> entries;
+    string line;
+
+    while (getline(cin, line)) {
+        if (line.empty()) continue;
+        auto tab = line.find('\t');
+
+        string key_s;
+        key_s.reserve(6);
+        for (char c : line.substr(0, tab)) {
+            if (isalnum(static_cast<unsigned char>(c)))
+                key_s.push_back(c);
+        }
+        if (key_s.size() != 6) continue;
+
+        Entry e;
+
+        auto val = line.substr(tab + 1);
+        size_t len = min(val.size(), size_t(64));
+        memcpy(e.value, val.data(), len);
+        e.value[len] = '\0';
+
+        for (int i = 0; i < 6; ++i) {
+            char c = key_s[i];
+            e.key[i] = isalpha(static_cast<unsigned char>(c)) ? c - 'A' : c - '0';
+        }
+        entries.push_back(e);
+    }
+
+    size_t n = entries.size();
+    vector<Entry> buffer(n);
+    array<int, 26> cnt;
+    array<int, 26> pos_arr;
+
+    for (int d = 5; d >= 0; --d) {
+        int range = (d == 0 || d >= 4 ? 26 : 10);
+        cnt.fill(0);
+        for (auto &e : entries) cnt[e.key[d]]++;
+        pos_arr[0] = 0;
+        for (int i = 1; i < range; ++i)
+            pos_arr[i] = pos_arr[i - 1] + cnt[i - 1];
+
+        for (auto &e : entries) {
+            int k = e.key[d];
+            buffer[pos_arr[k]++] = e;
+        }
+        entries.swap(buffer);
+    }
+
+    for (auto &e : entries) {
+        cout << char('A' + e.key[0]) << ' ';
+        cout << int(e.key[1]) << int(e.key[2]) << int(e.key[3]) << ' ';
+        cout << char('A' + e.key[4]) << char('A' + e.key[5]);
+        cout << '\t' << e.value << '\n';
+    }
+    return 0;
+}
+
+\end{lstlisting}
+
+В случае, если код не помещается на одну-две страницы $A4$, тогда следует сделать табличку следующего вида:
+\begin{longtable}{|p{7.5cm}|p{7.5cm}|}
+\hline
+\rowcolor{lightgray}
+\multicolumn{2}{|c|} {main.c}\\
+\hline
+void sort(struct KV \& B, struct KV \& Res, int max, int size)&Функция сортировки подсчётом\\
+\hline
+\rowcolor{lightgray}
+\multicolumn{2}{|c|} {file1.c}\\
+\hline
+void function\_name()&Функция, \enquote{которая почти всегда работает, но неясно, что она делает}.\\
+\hline
+\end{longtable}
+В этом случае структуры или классы должны быть полностью приведены в листинге (без реализации методов).
+\begin{lstlisting}[language=C]
+struct KV{
+	int key;
+	char value;
+} KV;
+\end{lstlisting}
+\pagebreak
+
+\section{Консоль}
+\begin{alltt}
+a.kukhticev$ gcc -pedantic -Wall -std=c99 -Werror -Wno-sign-compare -lm da10.c -o da10 --some_long_argument=true
+a.kukhticev$ cat test1 
+87	a
+13	b
+89	c
+13	d
+a.kukhticev$ ./da10 < test1 
+13	b
+13	d
+87	a
+89	c
+\end{alltt}
+\pagebreak
+
