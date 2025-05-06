@@ -1,69 +1,164 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-struct Entry {
-    array<uint8_t, 6> key;
-    char value[65];
+class Treap {
+    struct Node {
+        string key;
+        uint64_t val;
+        uint32_t pr;
+        Node *l, *r;
+        Node(const string& key, uint64_t val, uint32_t pr)
+            : key(key), val(val), pr(pr), l(nullptr), r(nullptr) {}
+    };
+
+    Node* root;
+    mt19937 rng;
+
+    Node* merge(Node* a, Node* b) {
+        if (!a) return b;
+        if (!b) return a;
+        if (a->pr > b->pr) {
+            a->r = merge(a->r, b);
+            return a;
+        } else {
+            b->l = merge(a, b->l);
+            return b;
+        }
+    }
+
+    void split(Node* t, const string& key, Node*& a, Node*& b) {
+        if (!t) {
+            a = b = nullptr;
+        } else if (t->key < key) {
+            split(t->r, key, t->r, b);
+            a = t;
+        } else {
+            split(t->l, key, a, t->l);
+            b = t;
+        }
+    }
+
+    Node* insert(Node* t, Node* it, bool& inserted) {
+        if (!t) {
+            inserted = true;
+            return it;
+        }
+        if (it->key == t->key) {
+            inserted = false;
+            delete it;
+            return t;
+        }
+        if (it->pr < t->pr) {
+            split(t, it->key, it->l, it->r);
+            inserted = true;
+            return it;
+        } else if (it->key < t->key) {
+            t->l = insert(t->l, it, inserted);
+        } else {
+            t->r = insert(t->r, it, inserted);
+        }
+        return t;
+    }
+
+    Node* erase(Node* t, const string& key, bool& erased) {
+        if (!t) {
+            erased = false;
+            return nullptr;
+        }
+        if (t->key == key) {
+            erased = true;
+            Node* res = merge(t->l, t->r);
+            delete t;
+            return res;
+        } else if (key < t->key) {
+            t->l = erase(t->l, key, erased);
+        } else {
+            t->r = erase(t->r, key, erased);
+        }
+        return t;
+    }
+
+    Node* find(Node* t, const string& key) const {
+        if (!t) return nullptr;
+        if (t->key == key) return t;
+        if (key < t->key)
+            return find(t->l, key);
+        else
+            return find(t->r, key);
+    }
+
+   public:
+    Treap() : root(nullptr), rng(random_device{}()) {}
+
+    bool insert(const string& key, uint64_t val) {
+        Node* it = new Node(key, val, rng());
+        bool inserted = false;
+        root = insert(root, it, inserted);
+        return inserted;
+    }
+
+    bool erase(const string& key) {
+        bool erased = false;
+        root = erase(root, key, erased);
+        return erased;
+    }
+
+    bool find(const string& key, uint64_t& val) const {
+        Node* res = find(root, key);
+        if (res) {
+            val = res->val;
+            return true;
+        }
+        return false;
+    }
 };
+
+static inline string toLower(const string& s) {
+    string t = s;
+    for (char& c : t) {
+        c = tolower(static_cast<unsigned char>(c));
+    }
+    return t;
+}
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    vector<Entry> entries;
+    Treap treap;
     string line;
-
-    while (getline(cin, line)) {
-        if (line.empty()) continue;
-        auto tab = line.find('\t');
-
-        string key_s;
-        key_s.reserve(6);
-        for (char c : line.substr(0, tab)) {
-            if (isalnum(static_cast<unsigned char>(c)))
-                key_s.push_back(c);
+    while (cin >> line) {
+        if (line == "+") {
+            string word;
+            uint64_t num;
+            cin >> word >> num;
+            word = toLower(word);
+            uint64_t some;
+            if (treap.find(word, some)) {
+                cout << "Exist\n";
+            } else {
+                if (treap.insert(word, num))
+                    cout << "OK\n";
+                else
+                    cout << "Exist\n";
+            }
+        } else if (line == "-") {
+            string word;
+            cin >> word;
+            word = toLower(word);
+            if (treap.erase(word))
+                cout << "OK\n";
+            else
+                cout << "NoSuchWord\n";
+        } else {
+            string word = toLower(line);
+            uint64_t num;
+            if (treap.find(word, num))
+                cout << "OK: " << num << "\n";
+            else
+                cout << "NoSuchWord\n";
         }
-        if (key_s.size() != 6) continue;
-
-        Entry e;
-
-        auto val = line.substr(tab + 1);
-        size_t len = min(val.size(), size_t(64));
-        memcpy(e.value, val.data(), len);
-        e.value[len] = '\0';
-
-        for (int i = 0; i < 6; ++i) {
-            char c = key_s[i];
-            e.key[i] = isalpha(static_cast<unsigned char>(c)) ? c - 'A' : c - '0';
-        }
-        entries.push_back(e);
     }
 
-    size_t n = entries.size();
-    vector<Entry> buffer(n);
-    array<int, 26> cnt;
-    array<int, 26> pos_arr;
-
-    for (int d = 5; d >= 0; --d) {
-        int range = (d == 0 || d >= 4 ? 26 : 10);
-        cnt.fill(0);
-        for (auto &e : entries) cnt[e.key[d]]++;
-        pos_arr[0] = 0;
-        for (int i = 1; i < range; ++i)
-            pos_arr[i] = pos_arr[i - 1] + cnt[i - 1];
-
-        for (auto &e : entries) {
-            int k = e.key[d];
-            buffer[pos_arr[k]++] = e;
-        }
-        entries.swap(buffer);
-    }
-
-    for (auto &e : entries) {
-        cout << char('A' + e.key[0]) << ' ';
-        cout << int(e.key[1]) << int(e.key[2]) << int(e.key[3]) << ' ';
-        cout << char('A' + e.key[4]) << char('A' + e.key[5]);
-        cout << '\t' << e.value << '\n';
-    }
     return 0;
 }
