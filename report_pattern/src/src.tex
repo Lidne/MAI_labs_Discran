@@ -85,42 +85,21 @@ int main() {
 
 \end{lstlisting}
 
-В случае, если код не помещается на одну-две страницы $A4$, тогда следует сделать табличку следующего вида:
-\begin{longtable}{|p{7.5cm}|p{7.5cm}|}
-\hline
-\rowcolor{lightgray}
-\multicolumn{2}{|c|} {main.c}\\
-\hline
-void sort(struct KV \& B, struct KV \& Res, int max, int size)&Функция сортировки подсчётом\\
-\hline
-\rowcolor{lightgray}
-\multicolumn{2}{|c|} {file1.c}\\
-\hline
-void function\_name()&Функция, \enquote{которая почти всегда работает, но неясно, что она делает}.\\
-\hline
-\end{longtable}
-В этом случае структуры или классы должны быть полностью приведены в листинге (без реализации методов).
-\begin{lstlisting}[language=C]
-struct KV{
-	int key;
-	char value;
-} KV;
-\end{lstlisting}
 \pagebreak
 
 \section{Консоль}
 \begin{alltt}
-a.kukhticev$ gcc -pedantic -Wall -std=c99 -Werror -Wno-sign-compare -lm da10.c -o da10 --some_long_argument=true
-a.kukhticev$ cat test1 
-87	a
-13	b
-89	c
-13	d
-a.kukhticev$ ./da10 < test1 
-13	b
-13	d
-87	a
-89	c
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ make main
+g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ ./main
+A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naatt
+Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naat
+A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naa
+Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3na
+A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naatt
+A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naa
+Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naat
+Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3na
 \end{alltt}
 \pagebreak
 
