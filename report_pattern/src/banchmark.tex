@@ -1,24 +1,20 @@
 \section{Тест производительности}
-{\itshape Тут Вы описываете собственно тест производительности, сравнение Вашей реализации с уже существующими и т.д.}
-
-
-Тест производительности представляет из себя следующее: поиск образцов с помощью суффиксного массива сравнивается с поиском алгоритма КМП, но время на построение суффиксного массива не учитывается. Текст состоит из 1 миллиона букв: а образцов около 200 штук, длина которых может быть от 2 до 100 букв.
+Тест производительности заключается в сравнении поиска образца при помощи Z-алгоритма и стандартной функции строки \texttt{std::find()} в языке C++. В данном случае не учитывается время на чтение входных данных. Основная строка состоит из 1 миллиона букв, всего примерно 200 образцов длиной от 2 до 100 символов.
 
 \begin{alltt}
-Andys-MacBook-Pro:kmp Andy$ g++ main.cpp
-Andys-MacBook-Pro:kmp Andy$ ./a.out <../in.txt >out2.txt
-Andys-MacBook-Pro:kmp Andy$ cat out2.txt | grep "time"
-KMP search time: 1.639993 sec
-Andys-MacBook-Pro:sa Andy$ make
-g++ -pedantic -Wall -Werror -Wno-sign-compare -Wno-long-long -lm -O2 -o lab5
-main.cpp suffix_tree.cpp suffix_array.cpp
-Andys-MacBook-Pro:sa Andy$ ./lab5 <../in.txt >out1.txt
-Andys-MacBook-Pro:sa Andy$ cat out1.txt | grep "time"
-Suffix array build time: 2.179744 sec
-Suffix array search time: 0.003511 sec
+[george@GEORGE-HONOR14 src]$ g++ zblock.cpp -O2
+[george@GEORGE-HONOR14 src]$ ./a.out < ../input.txt > zout.txt
+[george@GEORGE-HONOR14 src]$ cat zout.txt | grep "time"
+Z-algorithm search total time: 0.025122 sec
+[george@GEORGE-HONOR14 src]$ g++ stdfind.cpp -O2
+[george@GEORGE-HONOR14 src]$ ./a.out < ../input.txt > findout.txt
+[george@GEORGE-HONOR14 src]$ cat findout.txt | grep "time"
+std::find search total time: 1.374654 sec
 \end{alltt}
 
-Как видно, что суффиксный массив выиграл у КМП, так как и т.д.
+При поиске всех 200 образцов Z-алгоритм оказался значительно быстрее стандартной функции \texttt{std::find}, так как используется эффективная обработка всей строки за линейное время относительно её длины. Полученная скорость объясняется тем, что \texttt{std::find} реализует простой перебор без предварительной обработки шаблона, в то время как Z-алгоритм учитывает префиксные совпадения и работает за $O(|text| + |pattern|)$ для каждого поиска. 
+
+Таким образом, для массового поиска образцов Z-алгоритм рекомендуется для больших текстов.
 
 \pagebreak
 
