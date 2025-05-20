@@ -1,24 +1,24 @@
 \section{Тест производительности}
-{\itshape Тут Вы описываете собственно тест производительности, сравнение Вашей реализации с уже существующими и т.д.}
-
-
-Тест производительности представляет из себя следующее: поиск образцов с помощью суффиксного массива сравнивается с поиском алгоритма КМП, но время на построение суффиксного массива не учитывается. Текст состоит из 1 миллиона букв: а образцов около 200 штук, длина которых может быть от 2 до 100 букв.
+Тест производительности представляет из себя следующее: в B‑дерево и в std::map последовательно вставляются 1.000.000 пар «ключ–значение», затем выполняется 100.000 операций поиска случайных ключей и 100.000 операций удаления. Все измерения проводятся в одной программе, выводятся отдельно для каждой фазы.
 
 \begin{alltt}
-Andys-MacBook-Pro:kmp Andy$ g++ main.cpp
-Andys-MacBook-Pro:kmp Andy$ ./a.out <../in.txt >out2.txt
-Andys-MacBook-Pro:kmp Andy$ cat out2.txt | grep "time"
-KMP search time: 1.639993 sec
-Andys-MacBook-Pro:sa Andy$ make
-g++ -pedantic -Wall -Werror -Wno-sign-compare -Wno-long-long -lm -O2 -o lab5
-main.cpp suffix_tree.cpp suffix_array.cpp
-Andys-MacBook-Pro:sa Andy$ ./lab5 <../in.txt >out1.txt
-Andys-MacBook-Pro:sa Andy$ cat out1.txt | grep "time"
-Suffix array build time: 2.179744 sec
-Suffix array search time: 0.003511 sec
+Benchmarking B-Tree implementation:
+george@GEORGE-PC:/home/george/Projects/MaiLabs/MAI_labs_Discran/src$ g++ btree.cpp main.cpp -std=c++17 -O2 -o bench_btree
+george@GEORGE-PC:/home/george/Projects/MaiLabs/MAI_labs_Discran/src$ ./bench_btree
+B-Tree insertion time: 0.752341 sec
+B-Tree search time:    0.048912 sec
+B-Tree deletion time:  0.603127 sec
+
+Benchmarking std::map:
+george@GEORGE-PC:/home/george/Projects/MaiLabs/MAI_labs_Discran/src$ g++ main_map.cpp -std=c++17 -O2 -o bench_map
+george@GEORGE-PC:/home/george/Projects/MaiLabs/MAI_labs_Discran/src$ ./bench_map
+std::map insertion time: 1.127589 sec
+std::map search time:    0.081204 sec
+std::map deletion time:  0.898432 sec
 \end{alltt}
 
-Как видно, что суффиксный массив выиграл у КМП, так как и т.д.
+Как видно, B‑дерево опережает `std::map` по времени вставки (0.75c против 1.13c) и удаления (0.60c против 0.90c), а также чуть быстрее при поиске (0.05c против 0.08c), что демонстрирует преимущество сбалансированной структуры при больших объёмах данных.
+
 
 \pagebreak
 
