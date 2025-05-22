@@ -1,0 +1,61 @@
+==18481== Memcheck, a memory error detector
+==18481== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==18481== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==18481== Command: ./main
+==18481== 
+==18481== 
+==18481== HEAP SUMMARY:
+==18481==     in use at exit: 122,880 bytes in 6 blocks
+==18481==   total heap usage: 313 allocs, 307 frees, 229,822 bytes allocated
+==18481== 
+==18481== 8,192 bytes in 1 blocks are still reachable in loss record 1 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498ABC3: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x49888CA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FB7B: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== 8,192 bytes in 1 blocks are still reachable in loss record 2 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498ABC3: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x49888CA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FB9E: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== 8,192 bytes in 1 blocks are still reachable in loss record 3 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498ABC3: std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x49888CA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FBC1: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== 32,768 bytes in 1 blocks are still reachable in loss record 4 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498CA56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x4988ACA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FC30: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== 32,768 bytes in 1 blocks are still reachable in loss record 5 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498CA56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x4988ACA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FC53: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== 32,768 bytes in 1 blocks are still reachable in loss record 6 of 6
+==18481==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18481==    by 0x498CA56: std::basic_filebuf<wchar_t, std::char_traits<wchar_t> >::_M_allocate_internal_buffer() (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x4988ACA: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x492FC76: std::ios_base::sync_with_stdio(bool) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33)
+==18481==    by 0x10A79E: main (main.cpp:378)
+==18481== 
+==18481== LEAK SUMMARY:
+==18481==    definitely lost: 0 bytes in 0 blocks
+==18481==    indirectly lost: 0 bytes in 0 blocks
+==18481==      possibly lost: 0 bytes in 0 blocks
+==18481==    still reachable: 122,880 bytes in 6 blocks
+==18481==         suppressed: 0 bytes in 0 blocks
+==18481== 
+==18481== For lists of detected and suppressed errors, rerun with: -s
+==18481== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

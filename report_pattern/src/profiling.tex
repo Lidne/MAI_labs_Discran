@@ -1,0 +1,63 @@
+\section*{Поиск утечек и профилирование}
+Поиск утечек через \texttt{valgrind} не выявил никаких проблем с аллоцированием памяти.
+\begin{lstlisting}[language=bash, caption=Вывод valgrind]
+==18481== Memcheck, a memory error detector
+==18481== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==18481== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==18481== Command: ./main
+==18481== 
+==18481== 
+==18481== HEAP SUMMARY:
+==18481==     in use at exit: 122,880 bytes in 6 blocks
+==18481==   total heap usage: 313 allocs, 307 frees, 229,822 bytes allocated
+==18481==  
+==18481== LEAK SUMMARY:
+==18481==    definitely lost: 0 bytes in 0 blocks
+==18481==    indirectly lost: 0 bytes in 0 blocks
+==18481==      possibly lost: 0 bytes in 0 blocks
+==18481==    still reachable: 122,880 bytes in 6 blocks
+==18481==         suppressed: 0 bytes in 0 blocks
+==18481== 
+==18481== For lists of detected and suppressed errors, rerun with: -s
+==18481== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{lstlisting}
+
+Для анализа производительности использовался инструмент \texttt{gprof}. Программа была скомпилирована с флагом \texttt{-pg}, и протестирована на массивном наборе входных данных (500.000 команд вставок, удалений и поиска).
+
+\begin{lstlisting}[caption=Flat profile]
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+ 71.43      0.05     0.05   257750   193.99   193.99  BNode::remove(...)
+ 14.29      0.06     0.01   228750    43.72    43.72  BNode::insertNotNull(...)
+ 14.29      0.07     0.01                             main
+  0.00      0.07     0.00   500000     0.00     0.00  to_lower(...)
+  0.00      0.07     0.00   500000     0.00     0.00  frame_dummy
+  0.00      0.07     0.00     8000     0.00   193.99  BNode::cull(int)
+  0.00      0.07     0.00     2250     0.00     0.00  BNode::merge(int)
+  0.00      0.07     0.00     2250     0.00     0.00  BNode::split(int)
+  0.00      0.07     0.00      250     0.00     0.00  BNode::~BNode()
+  0.00      0.07     0.00        1     0.00     0.00  BTree::~BTree()
+\end{lstlisting}
+
+\texttt{Flat profile} показал, что:
+\begin{itemize}
+    \item Основное время исполнения уходит на метод \texttt{BNode::remove} (71.43\% от общего времени), что указывает на доминирование операций удаления в тесте.
+    \item Вставка (\texttt{BNode::insertNotNull}) занимает 14.29\% времени и выполняется эффективно.
+    \item Функция \texttt{main} также потребляет 14.29\% времени на координацию операций.
+    \item Вспомогательные операции (\texttt{to\_lower}, \texttt{frame\_dummy}, структурные операции B-дерева) практически не влияют на производительность (0.00\% времени каждая).
+    \item Алгоритмическая сложность операций соответствует заявленной для B-деревьев: эффективное время выполнения при большом количестве операций.
+\end{itemize}
+
+Также \texttt{Call Graph} показал, что:
+\begin{itemize}
+    \item Удаление вызывает \texttt{BNode::cull} для поддержания структурных свойств B-дерева, что ожидаемо для данной реализации.
+    \item Операции \texttt{BNode::merge} и \texttt{BNode::split} вызываются в равном количестве (2250 раз каждая), что свидетельствует о сбалансированной работе алгоритма реструктуризации.
+    \item Методы очистки (\texttt{BNode::~BNode}) и завершения (\texttt{BTree::~BTree}) вызываются ограниченное количество раз и не влияют на общую производительность.
+\end{itemize}
+
+Таким образом, можно сделать вывод, что реализация B-дерева демонстрирует ожидаемое поведение и эффективность, а узкие места (удаление и поддержание структуры дерева) соответствуют характеру входных данных и специфике алгоритма B-дерева.
+
+\pagebreak

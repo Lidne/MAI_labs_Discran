@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2 -std=c++20 -Wall -Wextra
+CXXFLAGS = -O2 -std=c++20 -Wall -Wextra -g
 TARGET = main
 SRC = main.cpp
 
