@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -10,293 +11,393 @@ using namespace std;
 
 const int T = 64;
 
-string to_lower(const string &o) {
-    string w = o;
-    for (size_t h = 0; h < w.length(); ++h) w[h] = tolower(w[h]);
-    return w;
+static string lowercase_copy(const string &src) {
+    string result = src;
+    transform(result.begin(), result.end(), result.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return result;
 }
 
 class BNode {
    public:
-    bool leaf;
-    int c;
-    string keys[2 * T - 1];
-    uint64_t values[2 * T - 1];
-    BNode *children[2 * T];
+    bool isLeaf;
+    int count;
+    string keySlots[2 * T - 1];
+    uint64_t valSlots[2 * T - 1];
+    BNode *childPtrs[2 * T];
 
-    BNode(bool leaf_) : leaf(leaf_), c(0) {
-        std::fill(children, children + 2 * T, nullptr);
+    explicit BNode(bool leafFlag) : isLeaf(leafFlag), count(0) {
+        std::fill(childPtrs, childPtrs + 2 * T, nullptr);
     }
 
     ~BNode() {
-        if (!leaf) {
-            for (int j = 0; j <= c; ++j) {
-                delete children[j];
+        if (!isLeaf) {
+            for (int j = 0; j <= count; ++j) {
+                delete childPtrs[j];
             }
         }
     }
 
-    pair<bool, uint64_t> search(const string &k) {
-        int l = 0, r = c - 1;
-        while (l <= r) {
-            int m = l + (r - l) / 2;
-            if (keys[m] == k)
-                return {true, values[m]};
-            else if (keys[m] < k)
-                l = m + 1;
-            else
-                r = m - 1;
+    pair<bool, uint64_t> search(const string &key) {
+        int pos = findPosition(key);
+        if (isMatchAt(pos, key)) {
+            return {true, valSlots[pos]};
         }
-        if (leaf)
-            return {false, 0};
-        if (l > c || children[l] == nullptr)
-            return {false, 0};
-        return children[l]->search(k);
+        if (isLeaf) {
+            return notFound();
+        }
+        if (isInvalidChild(pos)) {
+            return notFound();
+        }
+        return descendSearch(pos, key);
     }
 
-    void insertNotNull(const string &k, uint64_t v) {
-        int idx = c - 1;
-
-        if (leaf) {
-            while (idx >= 0 && keys[idx] > k) {
-                keys[idx + 1] = keys[idx];
-                values[idx + 1] = values[idx];
-                --idx;
-            }
-            keys[idx + 1] = k;
-            values[idx + 1] = v;
-            c++;
-        } else {
-            while (idx >= 0 && keys[idx] > k)
-                idx--;
-            idx++;
-            if (children[idx]->c == 2 * T - 1) {
-                split(idx);
-                if (keys[idx] < k)
-                    idx++;
-            }
-            children[idx]->insertNotNull(k, v);
+    void insertIntoNonFull(const string &key, uint64_t value) {
+        if (isLeaf) {
+            insertIntoLeafAtSorted(key, value);
+            return;
         }
+        int idx = findInsertChildIndex(key);
+        ensureChildWritable(idx, key);
+        childPtrs[idx]->insertIntoNonFull(key, value);
     }
 
-    void split(int index) {
-        BNode *origin = children[index];
-        BNode *newSibling = new BNode(origin->leaf);
-        newSibling->c = T - 1;
-
-        for (int i = 0; i < T - 1; ++i) {
-            newSibling->keys[i] = origin->keys[i + T];
-            newSibling->values[i] = origin->values[i + T];
-        }
-        if (!origin->leaf) {
-            for (int i = 0; i < T; ++i)
-                newSibling->children[i] = origin->children[i + T];
-        }
-
-        origin->c = T - 1;
-
-        for (int i = c; i >= index + 1; --i)
-            children[i + 1] = children[i];
-        children[index + 1] = newSibling;
-
-        for (int i = c - 1; i >= index; --i) {
-            keys[i + 1] = keys[i];
-            values[i + 1] = values[i];
-        }
-        keys[index] = origin->keys[T - 1];
-        values[index] = origin->values[T - 1];
-        c++;
+    void splitChild(int index) {
+        BNode *origin = childPtrs[index];
+        BNode *sibling = allocateSibling(origin);
+        moveKeysToSibling(origin, sibling);
+        moveChildrenToSibling(origin, sibling);
+        origin->count = T - 1;
+        insertSiblingIntoParent(index, sibling);
+        liftMedianFromOrigin(index, origin);
     }
 
     bool remove(const string &key) {
-        int idx = 0;
-        while (idx < c && keys[idx] < key)
-            idx++;
-        if (idx < c && keys[idx] == key) {
-            if (leaf) {
-                drop(idx);
-                return true;
+        int idx = findPosition(key);
+        if (isMatchAt(idx, key)) {
+            return removeWhenFound(idx);
+        }
+        if (isLeaf) {
+            return false;
+        }
+        bool wasRight = (idx == count);
+        prepareChildForRemoval(idx);
+        idx = adjustIndexAfterRebalance(idx, wasRight);
+        return childPtrs[idx]->remove(key);
+    }
+
+    void eraseAtIndex(int idx) {
+        for (int j = idx + 1; j < count; ++j) {
+            keySlots[j - 1] = keySlots[j];
+            valSlots[j - 1] = valSlots[j];
+        }
+        --count;
+    }
+
+    bool removeFromInternal(int idx) {
+        string keyToDelete = keySlots[idx];
+        if (childPtrs[idx]->count >= T) {
+            auto pred = findPredecessor(idx);
+            keySlots[idx] = pred.first;
+            valSlots[idx] = pred.second;
+            return childPtrs[idx]->remove(pred.first);
+        }
+        if (childPtrs[idx + 1]->count >= T) {
+            auto succ = findSuccessor(idx);
+            keySlots[idx] = succ.first;
+            valSlots[idx] = succ.second;
+            return childPtrs[idx + 1]->remove(succ.first);
+        }
+
+        mergeChildren(idx);
+        return childPtrs[idx]->remove(keyToDelete);
+    }
+
+    pair<string, uint64_t> findPredecessor(int t) {
+        BNode *cur = childPtrs[t];
+        while (!cur->isLeaf) {
+            cur = cur->childPtrs[cur->count];
+        }
+        return {cur->keySlots[cur->count - 1], cur->valSlots[cur->count - 1]};
+    }
+
+    pair<string, uint64_t> findSuccessor(int t) {
+        BNode *cur = childPtrs[t + 1];
+        while (!cur->isLeaf) {
+            cur = cur->childPtrs[0];
+        }
+        return {cur->keySlots[0], cur->valSlots[0]};
+    }
+
+    void rebalanceChild(int idx) {
+        if (idx != 0 && childPtrs[idx - 1]->count >= T) {
+            borrowFromLeft(idx);
+            return;
+        }
+        if (idx != count && childPtrs[idx + 1]->count >= T) {
+            borrowFromRight(idx);
+            return;
+        }
+        if (idx != count) {
+            mergeChildren(idx);
+        } else {
+            mergeChildren(idx - 1);
+        }
+    }
+
+    void borrowFromLeft(int idx) {
+        BNode *child = childPtrs[idx];
+        BNode *left = childPtrs[idx - 1];
+
+        for (int i = child->count - 1; i >= 0; --i) {
+            child->keySlots[i + 1] = child->keySlots[i];
+            child->valSlots[i + 1] = child->valSlots[i];
+        }
+        if (!child->isLeaf) {
+            for (int i = child->count; i >= 0; --i) {
+                child->childPtrs[i + 1] = child->childPtrs[i];
             }
-            return cull(idx);
-        } else {
-            if (leaf)
-                return false;
-            bool at_end = (idx == c);
-            if (children[idx]->c < T)
-                fill(idx);
-            if (at_end && idx > c)
-                idx--;
-            return children[idx]->remove(key);
         }
+        child->keySlots[0] = keySlots[idx - 1];
+        child->valSlots[0] = valSlots[idx - 1];
+        if (!child->isLeaf) {
+            child->childPtrs[0] = left->childPtrs[left->count];
+        }
+
+        keySlots[idx - 1] = left->keySlots[left->count - 1];
+        valSlots[idx - 1] = left->valSlots[left->count - 1];
+        ++child->count;
+        --left->count;
     }
 
-    void drop(int idx) {
-        for (int j = idx + 1; j < c; ++j) {
-            keys[j - 1] = keys[j];
-            values[j - 1] = values[j];
+    void borrowFromRight(int idx) {
+        BNode *child = childPtrs[idx];
+        BNode *right = childPtrs[idx + 1];
+
+        child->keySlots[child->count] = keySlots[idx];
+        child->valSlots[child->count] = valSlots[idx];
+        if (!child->isLeaf) {
+            child->childPtrs[child->count + 1] = right->childPtrs[0];
         }
-        c--;
+
+        keySlots[idx] = right->keySlots[0];
+        valSlots[idx] = right->valSlots[0];
+
+        for (int i = 1; i < right->count; ++i) {
+            right->keySlots[i - 1] = right->keySlots[i];
+            right->valSlots[i - 1] = right->valSlots[i];
+        }
+        if (!right->isLeaf) {
+            for (int i = 1; i <= right->count; ++i) {
+                right->childPtrs[i - 1] = right->childPtrs[i];
+            }
+        }
+        ++child->count;
+        --right->count;
     }
 
-    bool cull(int idx) {
-        string delKey = keys[idx];
-        if (children[idx]->c >= T) {
-            auto pred = getPred(idx);
-            keys[idx] = pred.first;
-            values[idx] = pred.second;
-            return children[idx]->remove(pred.first);
-        } else if (children[idx + 1]->c >= T) {
-            auto succ = getSucc(idx);
-            keys[idx] = succ.first;
-            values[idx] = succ.second;
-            return children[idx + 1]->remove(succ.first);
-        } else {
-            merge(idx);
-            return children[idx]->remove(delKey);
+    void mergeChildren(int idx) {
+        BNode *left = childPtrs[idx];
+        BNode *right = childPtrs[idx + 1];
+
+        left->keySlots[T - 1] = keySlots[idx];
+        left->valSlots[T - 1] = valSlots[idx];
+
+        for (int i = 0; i < right->count; ++i) {
+            left->keySlots[i + T] = right->keySlots[i];
+            left->valSlots[i + T] = right->valSlots[i];
         }
-    }
-
-    pair<string, uint64_t> getPred(int t) {
-        BNode *cur = children[t];
-        while (!cur->leaf)
-            cur = cur->children[cur->c];
-        return {cur->keys[cur->c - 1], cur->values[cur->c - 1]};
-    }
-
-    pair<string, uint64_t> getSucc(int t) {
-        BNode *cur = children[t + 1];
-        while (!cur->leaf)
-            cur = cur->children[0];
-        return {cur->keys[0], cur->values[0]};
-    }
-
-    void fill(int idx) {
-        if (idx != 0 && children[idx - 1]->c >= T)
-            siphonL(idx);
-        else if (idx != c && children[idx + 1]->c >= T)
-            siphonR(idx);
-        else {
-            if (idx != c)
-                merge(idx);
-            else
-                merge(idx - 1);
+        if (!left->isLeaf) {
+            for (int i = 0; i <= right->count; ++i) {
+                left->childPtrs[i + T] = right->childPtrs[i];
+            }
         }
-    }
 
-    void siphonL(int idx) {
-        BNode *curChild = children[idx];
-        BNode *leftSibling = children[idx - 1];
-        for (int i = curChild->c - 1; i >= 0; --i) {
-            curChild->keys[i + 1] = curChild->keys[i];
-            curChild->values[i + 1] = curChild->values[i];
+        for (int i = idx + 1; i < count; ++i) {
+            keySlots[i - 1] = keySlots[i];
+            valSlots[i - 1] = valSlots[i];
         }
-        if (!curChild->leaf) {
-            for (int i = curChild->c; i >= 0; --i)
-                curChild->children[i + 1] = curChild->children[i];
+        for (int i = idx + 2; i <= count; ++i) {
+            childPtrs[i - 1] = childPtrs[i];
         }
-        curChild->keys[0] = keys[idx - 1];
-        curChild->values[0] = values[idx - 1];
-        if (!curChild->leaf)
-            curChild->children[0] = leftSibling->children[leftSibling->c];
 
-        keys[idx - 1] = leftSibling->keys[leftSibling->c - 1];
-        values[idx - 1] = leftSibling->values[leftSibling->c - 1];
-        curChild->c++;
-        leftSibling->c--;
-    }
+        left->count += right->count + 1;
+        --count;
 
-    void siphonR(int idx) {
-        BNode *child = children[idx];
-        BNode *rightSibling = children[idx + 1];
-
-        child->keys[child->c] = keys[idx];
-        child->values[child->c] = values[idx];
-        if (!child->leaf)
-            child->children[child->c + 1] = rightSibling->children[0];
-
-        keys[idx] = rightSibling->keys[0];
-        values[idx] = rightSibling->values[0];
-
-        for (int i = 1; i < rightSibling->c; ++i) {
-            rightSibling->keys[i - 1] = rightSibling->keys[i];
-            rightSibling->values[i - 1] = rightSibling->values[i];
+        right->isLeaf = true;
+        for (int i = 0; i <= right->count; ++i) {
+            right->childPtrs[i] = nullptr;
         }
-        if (!rightSibling->leaf) {
-            for (int i = 1; i <= rightSibling->c; ++i)
-                rightSibling->children[i - 1] = rightSibling->children[i];
-        }
-        child->c++;
-        rightSibling->c--;
-    }
-
-    void merge(int idx) {
-        BNode *leftChild = children[idx];
-        BNode *rightChild = children[idx + 1];
-
-        leftChild->keys[T - 1] = keys[idx];
-        leftChild->values[T - 1] = values[idx];
-
-        for (int i = 0; i < rightChild->c; ++i) {
-            leftChild->keys[i + T] = rightChild->keys[i];
-            leftChild->values[i + T] = rightChild->values[i];
-        }
-        if (!leftChild->leaf) {
-            for (int i = 0; i <= rightChild->c; ++i)
-                leftChild->children[i + T] = rightChild->children[i];
-        }
-        for (int i = idx + 1; i < c; ++i) {
-            keys[i - 1] = keys[i];
-            values[i - 1] = values[i];
-        }
-        for (int i = idx + 2; i <= c; ++i)
-            children[i - 1] = children[i];
-
-        leftChild->c += rightChild->c + 1;
-        c--;
-        rightChild->leaf = true;
-        for (int i = 0; i <= rightChild->c; ++i)
-            rightChild->children[i] = nullptr;
-        delete rightChild;
+        delete right;
     }
 
     bool dump(ofstream &fo) {
-        fo.write((char *)(&leaf), sizeof(leaf));
-        fo.write((char *)(&c), sizeof(c));
-        for (int i = 0; i < c; ++i) {
-            size_t slen = keys[i].size();
-            fo.write((char *)(&slen), sizeof(slen));
-            fo.write(keys[i].data(), slen);
-            fo.write((char *)&values[i], sizeof(values[i]));
+        if (!writeHeaderAndEntries(fo)) {
+            return false;
         }
-        if (!leaf) {
-            for (int i = 0; i <= c; ++i) {
-                if (!children[i]->dump(fo))
+        if (!isLeaf) {
+            for (int i = 0; i <= count; ++i) {
+                if (!childPtrs[i]->dump(fo)) {
                     return false;
+                }
             }
         }
         return true;
     }
 
     static BNode *load(ifstream &fi) {
-        bool leaf_status;
-        if (!fi.read((char *)&leaf_status, sizeof(bool)))
+        bool leafFlag;
+        if (!readLeafMarker(fi, leafFlag)) {
             return nullptr;
-
-        BNode *node = new BNode(leaf_status);
-        fi.read((char *)(&node->c), sizeof(node->c));
-        for (int i = 0; i < node->c; ++i) {
-            size_t len;
-            fi.read((char *)&len, sizeof(len));
-            node->keys[i].resize(len);
-            fi.read(&node->keys[i][0], len);
-            fi.read((char *)&node->values[i], sizeof(node->values[i]));
         }
-        if (!leaf_status) {
-            for (int i = 0; i <= node->c; ++i) {
-                node->children[i] = load(fi);
-            }
+        BNode *node = new BNode(leafFlag);
+        readNodeBody(fi, node);
+        if (!leafFlag) {
+            readSubtrees(fi, node, leafFlag);
         }
         return node;
+    }
+
+   private:
+    int findPosition(const string &key) const {
+        return static_cast<int>(lower_bound(keySlots, keySlots + count, key) - keySlots);
+    }
+
+    bool isMatchAt(int pos, const string &key) const {
+        return (pos < count && keySlots[pos] == key);
+    }
+
+    bool isInvalidChild(int pos) const {
+        return (pos > count || childPtrs[pos] == nullptr);
+    }
+
+    pair<bool, uint64_t> notFound() const { return {false, 0}; }
+
+    pair<bool, uint64_t> descendSearch(int pos, const string &key) {
+        return childPtrs[pos]->search(key);
+    }
+
+    void insertIntoLeafAtSorted(const string &key, uint64_t value) {
+        int idx = count - 1;
+        while (idx >= 0 && keySlots[idx] > key) {
+            keySlots[idx + 1] = keySlots[idx];
+            valSlots[idx + 1] = valSlots[idx];
+            --idx;
+        }
+        keySlots[idx + 1] = key;
+        valSlots[idx + 1] = value;
+        ++count;
+    }
+
+    int findInsertChildIndex(const string &key) const {
+        int idx = count - 1;
+        while (idx >= 0 && keySlots[idx] > key) {
+            --idx;
+        }
+        return idx + 1;
+    }
+
+    void ensureChildWritable(int &idx, const string &key) {
+        if (childPtrs[idx]->count == 2 * T - 1) {
+            splitChild(idx);
+            if (keySlots[idx] < key) {
+                ++idx;
+            }
+        }
+    }
+
+    BNode *allocateSibling(BNode *origin) {
+        BNode *sibling = new BNode(origin->isLeaf);
+        sibling->count = T - 1;
+        return sibling;
+    }
+
+    void moveKeysToSibling(BNode *origin, BNode *sibling) {
+        for (int i = 0; i < T - 1; ++i) {
+            sibling->keySlots[i] = origin->keySlots[i + T];
+            sibling->valSlots[i] = origin->valSlots[i + T];
+        }
+    }
+
+    void moveChildrenToSibling(BNode *origin, BNode *sibling) {
+        if (!origin->isLeaf) {
+            for (int i = 0; i < T; ++i) {
+                sibling->childPtrs[i] = origin->childPtrs[i + T];
+            }
+        }
+    }
+
+    void insertSiblingIntoParent(int index, BNode *sibling) {
+        for (int i = count; i >= index + 1; --i) {
+            childPtrs[i + 1] = childPtrs[i];
+        }
+        childPtrs[index + 1] = sibling;
+    }
+
+    void liftMedianFromOrigin(int index, BNode *origin) {
+        for (int i = count - 1; i >= index; --i) {
+            keySlots[i + 1] = keySlots[i];
+            valSlots[i + 1] = valSlots[i];
+        }
+        keySlots[index] = origin->keySlots[T - 1];
+        valSlots[index] = origin->valSlots[T - 1];
+        ++count;
+    }
+
+    bool removeWhenFound(int idx) {
+        if (isLeaf) {
+            eraseAtIndex(idx);
+            return true;
+        }
+        return removeFromInternal(idx);
+    }
+
+    void prepareChildForRemoval(int &idx) {
+        if (childPtrs[idx]->count < T) {
+            rebalanceChild(idx);
+        }
+    }
+
+    int adjustIndexAfterRebalance(int idx, bool wasRightBoundary) const {
+        if (wasRightBoundary && idx > count) {
+            return idx - 1;
+        }
+        return idx;
+    }
+
+    bool writeHeaderAndEntries(ofstream &fo) {
+        fo.write(reinterpret_cast<char *>(&isLeaf), sizeof(isLeaf));
+        fo.write(reinterpret_cast<char *>(&count), sizeof(count));
+        for (int i = 0; i < count; ++i) {
+            size_t slen = keySlots[i].size();
+            fo.write(reinterpret_cast<char *>(&slen), sizeof(slen));
+            fo.write(keySlots[i].data(), slen);
+            fo.write(reinterpret_cast<char *>(&valSlots[i]), sizeof(valSlots[i]));
+        }
+        return true;
+    }
+
+    static bool readLeafMarker(ifstream &fi, bool &leafFlag) {
+        return static_cast<bool>(fi.read(reinterpret_cast<char *>(&leafFlag), sizeof(bool)));
+    }
+
+    static void readNodeBody(ifstream &fi, BNode *node) {
+        fi.read(reinterpret_cast<char *>(&node->count), sizeof(node->count));
+        for (int i = 0; i < node->count; ++i) {
+            size_t len = 0;
+            fi.read(reinterpret_cast<char *>(&len), sizeof(len));
+            node->keySlots[i].resize(len);
+            fi.read(&node->keySlots[i][0], len);
+            fi.read(reinterpret_cast<char *>(&node->valSlots[i]), sizeof(node->valSlots[i]));
+        }
+    }
+
+    static void readSubtrees(ifstream &fi, BNode *node, bool leafFlag) {
+        (void)leafFlag;
+        for (int i = 0; i <= node->count; ++i) {
+            node->childPtrs[i] = load(fi);
+        }
     }
 };
 
@@ -307,40 +408,43 @@ class BTree {
     ~BTree() { delete root; }
 
     bool add(const string &word, uint64_t val) {
-        if (root->search(word).first)
+        if (root->search(word).first) {
             return false;
+        }
 
-        if (root->c == 2 * T - 1) {
+        if (root->count == 2 * T - 1) {
             BNode *newRoot = new BNode(false);
-            newRoot->children[0] = root;
-            newRoot->split(0);
+            newRoot->childPtrs[0] = root;
+            newRoot->splitChild(0);
 
-            int childIndex = (newRoot->keys[0] < word) ? 1 : 0;
-            newRoot->children[childIndex]->insertNotNull(word, val);
+            int childIndex = (newRoot->keySlots[0] < word) ? 1 : 0;
+            newRoot->childPtrs[childIndex]->insertIntoNonFull(word, val);
 
             root = newRoot;
         } else {
-            root->insertNotNull(word, val);
+            root->insertIntoNonFull(word, val);
         }
         return true;
     }
 
     bool remove(const string &v) {
-        if (!root->c)
+        if (!root->count) {
             return false;
+        }
         bool found = root->remove(v);
-        if (root->c == 0 && !root->leaf) {
+        if (root->count == 0 && !root->isLeaf) {
             BNode *oldRoot = root;
-            root = root->children[0];
-            oldRoot->children[0] = nullptr;
+            root = root->childPtrs[0];
+            oldRoot->childPtrs[0] = nullptr;
             delete oldRoot;
         }
         return found;
     }
 
     pair<bool, uint64_t> search(const string &word) {
-        if (!root)
+        if (!root) {
             return {false, 0};
+        }
         return root->search(word);
     }
 
@@ -382,34 +486,39 @@ int main() {
     string line;
 
     while (getline(cin, line)) {
-        if (line.empty())
+        if (line.empty()) {
             continue;
-        if (line[0] == '+') {
+        }
+
+        const char op = line[0];
+        if (op == '+') {
             istringstream iss(line);
             string cmd, word;
-            uint64_t val;
+            uint64_t val = 0;
             iss >> cmd >> word >> val;
-            word = to_lower(word);
+            word = lowercase_copy(word);
             cout << (tree.add(word, val) ? "OK" : "Exist") << '\n';
-        } else if (line[0] == '-') {
-            string word = to_lower(line.substr(2));
+        } else if (op == '-') {
+            string word = lowercase_copy(line.substr(2));
             cout << (tree.remove(word) ? "OK" : "NoSuchWord") << '\n';
-        } else if (line[0] == '!') {
+        } else if (op == '!') {
             istringstream iss(line);
             string bang, cmd, path;
             iss >> bang >> cmd >> path;
             string err;
-            if (cmd == "Save")
+            if (cmd == "Save") {
                 cout << (tree.dump(path, err) ? "OK" : "ERROR: " + err) << '\n';
-            else if (cmd == "Load")
+            } else if (cmd == "Load") {
                 cout << (tree.load(path, err) ? "OK" : "ERROR: " + err) << '\n';
+            }
         } else {
-            string word = to_lower(line);
+            string word = lowercase_copy(line);
             auto res = tree.search(word);
-            if (res.first)
+            if (res.first) {
                 cout << "OK: " << res.second << '\n';
-            else
+            } else {
                 cout << "NoSuchWord\n";
+            }
         }
     }
     return 0;
