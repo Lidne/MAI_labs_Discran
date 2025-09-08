@@ -8,381 +8,437 @@
 
 using namespace std;
 
-const int T = 64;
+const int DEGREE_LIMIT = 64;
 
-string to_lower(const string &o) {
-    string w = o;
-    for (size_t h = 0; h < w.length(); ++h) w[h] = tolower(w[h]);
-    return w;
+string normalize_text_case(const string &input_text) {
+    string normalized = input_text;
+    for (size_t idx = 0; idx < normalized.length(); ++idx) 
+        normalized[idx] = tolower(normalized[idx]);
+    return normalized;
 }
 
-class BTree {
+class KeyValueStorage {
    public:
-    class BNode {
+    class TreeNode {
        public:
-        string keys[2 * T - 1];
-        uint64_t values[2 * T - 1];
-        BNode *children[2 * T];
-        bool leaf;
-        int c;
+        string entries[2 * DEGREE_LIMIT - 1];
+        uint64_t data[2 * DEGREE_LIMIT - 1];
+        TreeNode *childNodes[2 * DEGREE_LIMIT];
+        bool isLeafNode;
+        int elementCount;
 
-        BNode(bool leaf_) {
-            leaf = leaf_;
-            c = 0;
-            for (int i = 0; i < 2 * T; i++) {
-                children[i] = nullptr;
+        TreeNode(bool isLeafNode_) {
+            isLeafNode = isLeafNode_;
+            elementCount = 0;
+            for (int i = 0; i < 2 * DEGREE_LIMIT; i++) {
+                childNodes[i] = nullptr;
             }
         }
 
-        ~BNode() {
-            if (!leaf) {
-                for (int j = 0; j <= c; ++j) {
-                    if (children[j] != nullptr) {
-                        delete children[j];
-                        children[j] = nullptr;
+        ~TreeNode() {
+            if (!isLeafNode) {
+                for (int j = 0; j <= elementCount; ++j) {
+                    if (childNodes[j] != nullptr) {
+                        delete childNodes[j];
+                        childNodes[j] = nullptr;
                     }
                 }
             }
         }
 
-        pair<bool, uint64_t> search(const string &k) {
-            int l = 0, r = c - 1;
+        pair<bool, uint64_t> lookup(const string &k) {
+            int l = 0, r = elementCount - 1;
             while (r >= l) {
                 int m = l + ((r - l) >> 1);
-                if (keys[m] == k)
-                    return {true, values[m]};
-                else if (keys[m] < k)
+                if (entries[m] == k)
+                    return {true, data[m]};
+                else if (entries[m] < k)
                     l = m + 1;
                 else
                     r = m - 1;
             }
-            if (leaf)
+            if (isLeafNode)
                 return {false, 0};
-            if (l > c || children[l] == nullptr)
+            if (l > elementCount || childNodes[l] == nullptr)
                 return {false, 0};
-            return children[l]->search(k);
+            return childNodes[l]->lookup(k);
         }
 
-        void insert(const string &k, uint64_t v) {
-            int idx = c - 1;
+        void insertIntoLeaf(const string &k, uint64_t v) {
+            int idx = elementCount - 1;
+            while (idx >= 0 && entries[idx] > k) {
+                entries[idx + 1] = entries[idx];
+                data[idx + 1] = data[idx];
+                --idx;
+            }
+            entries[idx + 1] = k;
+            data[idx + 1] = v;
+            elementCount++;
+        }
 
-            if (leaf) {
-                while (idx >= 0 && keys[idx] > k) {
-                    keys[idx + 1] = keys[idx];
-                    values[idx + 1] = values[idx];
-                    --idx;
-                }
-                keys[idx + 1] = k;
-                values[idx + 1] = v;
-                c++;
+        int findChildIndex(const string &k) {
+            int idx = elementCount - 1;
+            while (idx >= 0 && entries[idx] > k)
+                idx--;
+            return idx + 1;
+        }
+
+        void insertIntoInternalNode(const string &k, uint64_t v) {
+            int idx = findChildIndex(k);
+            if (childNodes[idx]->elementCount == 2 * DEGREE_LIMIT - 1) {
+                divideNode(idx);
+                if (entries[idx] < k)
+                    idx++;
+            }
+            childNodes[idx]->addElement(k, v);
+        }
+
+        void addElement(const string &k, uint64_t v) {
+            if (isLeafNode) {
+                insertIntoLeaf(k, v);
             } else {
-                while (idx >= 0 && keys[idx] > k)
-                    idx--;
-                idx++;
-                if (children[idx]->c == 2 * T - 1) {
-                    split(idx);
-                    if (keys[idx] < k)
-                        idx++;
-                }
-                children[idx]->insert(k, v);
+                insertIntoInternalNode(k, v);
             }
         }
 
-        void split(int index) {
-            BNode *origin = children[index];
-            BNode *newSibling = new BNode(origin->leaf);
-            newSibling->c = T - 1;
-
-            for (int i = 0; i < T - 1; ++i) {
-                newSibling->keys[i] = origin->keys[i + T];
-                newSibling->values[i] = origin->values[i + T];
+        void moveHalfToNewNode(TreeNode *origin, TreeNode *newSibling) {
+            for (int i = 0; i < DEGREE_LIMIT - 1; ++i) {
+                newSibling->entries[i] = origin->entries[i + DEGREE_LIMIT];
+                newSibling->data[i] = origin->data[i + DEGREE_LIMIT];
             }
-            if (!origin->leaf) {
-                for (int i = 0; i < T; ++i)
-                    newSibling->children[i] = origin->children[i + T];
+            if (!origin->isLeafNode) {
+                for (int i = 0; i < DEGREE_LIMIT; ++i)
+                    newSibling->childNodes[i] = origin->childNodes[i + DEGREE_LIMIT];
             }
-
-            origin->c = T - 1;
-
-            for (int i = c; i >= index + 1; --i)
-                children[i + 1] = children[i];
-            children[index + 1] = newSibling;
-
-            for (int i = c - 1; i >= index; --i) {
-                keys[i + 1] = keys[i];
-                values[i + 1] = values[i];
-            }
-            keys[index] = origin->keys[T - 1];
-            values[index] = origin->values[T - 1];
-            c++;
         }
 
-        bool cull(int idx) {
-            string delKey = keys[idx];
-            if (children[idx]->c >= T) {
-                auto pred = getPred(idx);
-                keys[idx] = pred.first;
-                values[idx] = pred.second;
-                return children[idx]->remove(pred.first);
-            } else if (children[idx + 1]->c >= T) {
-                auto succ = getSucc(idx);
-                keys[idx] = succ.first;
-                values[idx] = succ.second;
-                return children[idx + 1]->remove(succ.first);
+        void shiftChildPointers(int index) {
+            for (int i = elementCount; i >= index + 1; --i)
+                childNodes[i + 1] = childNodes[i];
+        }
+
+        void shiftKeysAndData(int index) {
+            for (int i = elementCount - 1; i >= index; --i) {
+                entries[i + 1] = entries[i];
+                data[i + 1] = data[i];
+            }
+        }
+
+        void divideNode(int index) {
+            TreeNode *origin = childNodes[index];
+            TreeNode *newSibling = new TreeNode(origin->isLeafNode);
+            newSibling->elementCount = DEGREE_LIMIT - 1;
+
+            moveHalfToNewNode(origin, newSibling);
+            origin->elementCount = DEGREE_LIMIT - 1;
+
+            shiftChildPointers(index);
+            childNodes[index + 1] = newSibling;
+
+            shiftKeysAndData(index);
+            entries[index] = origin->entries[DEGREE_LIMIT - 1];
+            data[index] = origin->data[DEGREE_LIMIT - 1];
+            elementCount++;
+        }
+
+        bool replaceWithPredecessorOrSuccessor(int idx) {
+            string delKey = entries[idx];
+            if (childNodes[idx]->elementCount >= DEGREE_LIMIT) {
+                auto pred = findPredecessor(idx);
+                entries[idx] = pred.first;
+                data[idx] = pred.second;
+                return childNodes[idx]->deleteElement(pred.first);
+            } else if (childNodes[idx + 1]->elementCount >= DEGREE_LIMIT) {
+                auto succ = findSuccessor(idx);
+                entries[idx] = succ.first;
+                data[idx] = succ.second;
+                return childNodes[idx + 1]->deleteElement(succ.first);
             } else {
-                merge(idx);
-                return children[idx]->remove(delKey);
+                joinNodes(idx);
+                return childNodes[idx]->deleteElement(delKey);
             }
         }
 
-        bool remove(const string &key) {
+        int findKeyIndex(const string &key) {
             int idx = 0;
-            while (idx < c && keys[idx] < key)
+            while (idx < elementCount && entries[idx] < key)
                 idx++;
-            if (idx < c && keys[idx] == key) {
-                if (leaf) {
-                    drop(idx);
-                    return true;
-                }
-                return cull(idx);
+            return idx;
+        }
+
+        bool deleteFromLeafNode(const string &key, int idx) {
+            if (idx < elementCount && entries[idx] == key) {
+                removeFromLeaf(idx);
+                return true;
+            }
+            return false;
+        }
+
+        bool deleteFromInternalNode(const string &key, int idx) {
+            if (idx < elementCount && entries[idx] == key) {
+                return replaceWithPredecessorOrSuccessor(idx);
             } else {
-                if (leaf)
-                    return false;
-                bool at_end = (idx == c);
-                if (children[idx]->c < T)
-                    fill(idx);
-                if (at_end && idx > c)
+                bool at_end = (idx == elementCount);
+                if (childNodes[idx]->elementCount < DEGREE_LIMIT)
+                    ensureMinimumKeys(idx);
+                if (at_end && idx > elementCount)
                     idx--;
-                return children[idx]->remove(key);
+                return childNodes[idx]->deleteElement(key);
             }
         }
 
-        void drop(int idx) {
-            for (int j = idx + 1; j < c; ++j) {
-                keys[j - 1] = keys[j];
-                values[j - 1] = values[j];
+        bool deleteElement(const string &key) {
+            int idx = findKeyIndex(key);
+            
+            if (isLeafNode) {
+                return deleteFromLeafNode(key, idx);
+            } else {
+                return deleteFromInternalNode(key, idx);
             }
-            c--;
         }
 
-        pair<string, uint64_t> getPred(int t) {
-            BNode *cur = children[t];
-            while (!cur->leaf)
-                cur = cur->children[cur->c];
-            return {cur->keys[cur->c - 1], cur->values[cur->c - 1]};
+        void removeFromLeaf(int idx) {
+            for (int j = idx + 1; j < elementCount; ++j) {
+                entries[j - 1] = entries[j];
+                data[j - 1] = data[j];
+            }
+            elementCount--;
         }
 
-        pair<string, uint64_t> getSucc(int t) {
-            BNode *cur = children[t + 1];
-            while (!cur->leaf)
-                cur = cur->children[0];
-            return {cur->keys[0], cur->values[0]};
+        pair<string, uint64_t> findPredecessor(int t) {
+            TreeNode *cur = childNodes[t];
+            while (!cur->isLeafNode)
+                cur = cur->childNodes[cur->elementCount];
+            return {cur->entries[cur->elementCount - 1], cur->data[cur->elementCount - 1]};
         }
 
-        void fill(int idx) {
-            if (idx != 0 && children[idx - 1]->c >= T)
-                siphonL(idx);
-            else if (idx != c && children[idx + 1]->c >= T)
-                siphonR(idx);
+        pair<string, uint64_t> findSuccessor(int t) {
+            TreeNode *cur = childNodes[t + 1];
+            while (!cur->isLeafNode)
+                cur = cur->childNodes[0];
+            return {cur->entries[0], cur->data[0]};
+        }
+
+        void ensureMinimumKeys(int idx) {
+            if (idx != 0 && childNodes[idx - 1]->elementCount >= DEGREE_LIMIT)
+                borrowFromLeftSibling(idx);
+            else if (idx != elementCount && childNodes[idx + 1]->elementCount >= DEGREE_LIMIT)
+                borrowFromRightSibling(idx);
             else {
-                if (idx != c)
-                    merge(idx);
+                if (idx != elementCount)
+                    joinNodes(idx);
                 else
-                    merge(idx - 1);
+                    joinNodes(idx - 1);
             }
         }
 
-        void siphonL(int idx) {
-            BNode *curChild = children[idx];
-            BNode *leftSibling = children[idx - 1];
+        void borrowFromLeftSibling(int idx) {
+            TreeNode *curChild = childNodes[idx];
+            TreeNode *leftSibling = childNodes[idx - 1];
 
-            for (int i = curChild->c - 1; i >= 0; --i) {
-                curChild->keys[i + 1] = curChild->keys[i];
-                curChild->values[i + 1] = curChild->values[i];
+            for (int i = curChild->elementCount - 1; i >= 0; --i) {
+                curChild->entries[i + 1] = curChild->entries[i];
+                curChild->data[i + 1] = curChild->data[i];
             }
 
-            if (!curChild->leaf) {
-                for (int i = curChild->c; i >= 0; --i) {
-                    curChild->children[i + 1] = curChild->children[i];
+            if (!curChild->isLeafNode) {
+                for (int i = curChild->elementCount; i >= 0; --i) {
+                    curChild->childNodes[i + 1] = curChild->childNodes[i];
                 }
             }
 
-            curChild->keys[0] = keys[idx - 1];
-            curChild->values[0] = values[idx - 1];
+            curChild->entries[0] = entries[idx - 1];
+            curChild->data[0] = data[idx - 1];
 
-            if (!curChild->leaf) {
-                curChild->children[0] = leftSibling->children[leftSibling->c];
+            if (!curChild->isLeafNode) {
+                curChild->childNodes[0] = leftSibling->childNodes[leftSibling->elementCount];
             }
 
-            keys[idx - 1] = leftSibling->keys[leftSibling->c - 1];
-            values[idx - 1] = leftSibling->values[leftSibling->c - 1];
+            entries[idx - 1] = leftSibling->entries[leftSibling->elementCount - 1];
+            data[idx - 1] = leftSibling->data[leftSibling->elementCount - 1];
 
-            curChild->c++;
-            leftSibling->c--;
+            curChild->elementCount++;
+            leftSibling->elementCount--;
         }
 
-        void siphonR(int idx) {
-            BNode *child = children[idx];
-            BNode *rightSibling = children[idx + 1];
+        void borrowFromRightSibling(int idx) {
+            TreeNode *child = childNodes[idx];
+            TreeNode *rightSibling = childNodes[idx + 1];
 
-            child->keys[child->c] = keys[idx];
-            child->values[child->c] = values[idx];
+            child->entries[child->elementCount] = entries[idx];
+            child->data[child->elementCount] = data[idx];
 
-            if (!child->leaf) {
-                child->children[child->c + 1] = rightSibling->children[0];
+            if (!child->isLeafNode) {
+                child->childNodes[child->elementCount + 1] = rightSibling->childNodes[0];
             }
 
-            keys[idx] = rightSibling->keys[0];
-            values[idx] = rightSibling->values[0];
+            entries[idx] = rightSibling->entries[0];
+            data[idx] = rightSibling->data[0];
 
-            for (int i = 1; i < rightSibling->c; ++i) {
-                rightSibling->keys[i - 1] = rightSibling->keys[i];
-                rightSibling->values[i - 1] = rightSibling->values[i];
+            for (int i = 1; i < rightSibling->elementCount; ++i) {
+                rightSibling->entries[i - 1] = rightSibling->entries[i];
+                rightSibling->data[i - 1] = rightSibling->data[i];
             }
 
-            if (!rightSibling->leaf) {
-                for (int i = 1; i <= rightSibling->c; ++i) {
-                    rightSibling->children[i - 1] = rightSibling->children[i];
+            if (!rightSibling->isLeafNode) {
+                for (int i = 1; i <= rightSibling->elementCount; ++i) {
+                    rightSibling->childNodes[i - 1] = rightSibling->childNodes[i];
                 }
             }
 
-            child->c++;
-            rightSibling->c--;
+            child->elementCount++;
+            rightSibling->elementCount--;
         }
 
-        void merge(int idx) {
-            BNode *leftChild = children[idx];
-            BNode *rightChild = children[idx + 1];
+        void mergeKeysFromRight(TreeNode *leftChild, TreeNode *rightChild, int idx) {
+            leftChild->entries[DEGREE_LIMIT - 1] = entries[idx];
+            leftChild->data[DEGREE_LIMIT - 1] = data[idx];
 
-            leftChild->keys[T - 1] = keys[idx];
-            leftChild->values[T - 1] = values[idx];
+            for (int i = 0; i < rightChild->elementCount; ++i) {
+                leftChild->entries[i + DEGREE_LIMIT] = rightChild->entries[i];
+                leftChild->data[i + DEGREE_LIMIT] = rightChild->data[i];
+            }
+        }
 
-            for (int i = 0; i < rightChild->c; ++i) {
-                leftChild->keys[i + T] = rightChild->keys[i];
-                leftChild->values[i + T] = rightChild->values[i];
+        void mergeChildPointersFromRight(TreeNode *leftChild, TreeNode *rightChild) {
+            if (!leftChild->isLeafNode) {
+                for (int i = 0; i <= rightChild->elementCount; ++i)
+                    leftChild->childNodes[i + DEGREE_LIMIT] = rightChild->childNodes[i];
             }
-            if (!leftChild->leaf) {
-                for (int i = 0; i <= rightChild->c; ++i)
-                    leftChild->children[i + T] = rightChild->children[i];
-            }
-            for (int i = idx + 1; i < c; ++i) {
-                keys[i - 1] = keys[i];
-                values[i - 1] = values[i];
-            }
-            for (int i = idx + 2; i <= c; ++i)
-                children[i - 1] = children[i];
+        }
 
-            leftChild->c += rightChild->c + 1;
-            c--;
-            rightChild->leaf = true;
-            for (int i = 0; i <= rightChild->c; ++i)
-                rightChild->children[i] = nullptr;
+        void removeKeyFromParent(int idx) {
+            for (int i = idx + 1; i < elementCount; ++i) {
+                entries[i - 1] = entries[i];
+                data[i - 1] = data[i];
+            }
+            for (int i = idx + 2; i <= elementCount; ++i)
+                childNodes[i - 1] = childNodes[i];
+            elementCount--;
+        }
+
+        void cleanupRightChild(TreeNode *rightChild) {
+            rightChild->isLeafNode = true;
+            for (int i = 0; i <= rightChild->elementCount; ++i)
+                rightChild->childNodes[i] = nullptr;
             delete rightChild;
         }
 
-        bool dump(ofstream &fo) {
-            fo.write((char *)(&leaf), sizeof(leaf));
-            fo.write((char *)(&c), sizeof(c));
-            for (int i = 0; i < c; ++i) {
-                size_t slen = keys[i].size();
+        void joinNodes(int idx) {
+            TreeNode *leftChild = childNodes[idx];
+            TreeNode *rightChild = childNodes[idx + 1];
+
+            mergeKeysFromRight(leftChild, rightChild, idx);
+            mergeChildPointersFromRight(leftChild, rightChild);
+            removeKeyFromParent(idx);
+            
+            leftChild->elementCount += rightChild->elementCount + 1;
+            cleanupRightChild(rightChild);
+        }
+
+        bool serialize(ofstream &fo) {
+            fo.write((char *)(&isLeafNode), sizeof(isLeafNode));
+            fo.write((char *)(&elementCount), sizeof(elementCount));
+            for (int i = 0; i < elementCount; ++i) {
+                size_t slen = entries[i].size();
                 fo.write((char *)(&slen), sizeof(slen));
-                fo.write(keys[i].data(), slen);
-                fo.write((char *)&values[i], sizeof(values[i]));
+                fo.write(entries[i].data(), slen);
+                fo.write((char *)&data[i], sizeof(data[i]));
             }
-            if (!leaf) {
-                for (int i = 0; i <= c; ++i) {
-                    if (!children[i]->dump(fo))
+            if (!isLeafNode) {
+                for (int i = 0; i <= elementCount; ++i) {
+                    if (!childNodes[i]->serialize(fo))
                         return false;
                 }
             }
             return true;
         }
 
-        static BNode *load(ifstream &fi) {
-            bool leaf_status;
-            if (!fi.read((char *)&leaf_status, sizeof(bool)))
+        static TreeNode *deserialize(ifstream &fi) {
+            bool isLeafNode_status;
+            if (!fi.read((char *)&isLeafNode_status, sizeof(bool)))
                 return nullptr;
 
-            BNode *node = new BNode(leaf_status);
-            fi.read((char *)(&node->c), sizeof(node->c));
-            for (int i = 0; i < node->c; ++i) {
+            TreeNode *node = new TreeNode(isLeafNode_status);
+            fi.read((char *)(&node->elementCount), sizeof(node->elementCount));
+            for (int i = 0; i < node->elementCount; ++i) {
                 size_t len;
                 fi.read((char *)&len, sizeof(len));
-                node->keys[i].resize(len);
-                fi.read(&node->keys[i][0], len);
-                fi.read((char *)&node->values[i], sizeof(node->values[i]));
+                node->entries[i].resize(len);
+                fi.read(&node->entries[i][0], len);
+                fi.read((char *)&node->data[i], sizeof(node->data[i]));
             }
-            if (!leaf_status) {
-                for (int i = 0; i <= node->c; ++i) {
-                    node->children[i] = load(fi);
+            if (!isLeafNode_status) {
+                for (int i = 0; i <= node->elementCount; ++i) {
+                    node->childNodes[i] = deserialize(fi);
                 }
             }
             return node;
         }
     };
 
-    BNode *root;
-    BTree() : root(new BNode(true)) {}
-    ~BTree() { delete root; }
+    TreeNode *root;
+    KeyValueStorage() : root(new TreeNode(true)) {}
+    ~KeyValueStorage() { delete root; }
 
-    bool add(const string &word, uint64_t val) {
-        if (root->search(word).first)
+    bool insertKeyValue(const string &word, uint64_t val) {
+        if (root->lookup(word).first)
             return false;
 
-        if (root->c == 2 * T - 1) {
-            BNode *newRoot = new BNode(false);
-            newRoot->children[0] = root;
-            newRoot->split(0);
+        if (root->elementCount == 2 * DEGREE_LIMIT - 1) {
+            TreeNode *newRoot = new TreeNode(false);
+            newRoot->childNodes[0] = root;
+            newRoot->divideNode(0);
 
-            int childIndex = (newRoot->keys[0] < word) ? 1 : 0;
-            newRoot->children[childIndex]->insert(word, val);
+            int childIndex = (newRoot->entries[0] < word) ? 1 : 0;
+            newRoot->childNodes[childIndex]->addElement(word, val);
 
             root = newRoot;
         } else {
-            root->insert(word, val);
+            root->addElement(word, val);
         }
         return true;
     }
 
-    bool remove(const string &v) {
-        if (!root->c)
+    bool deleteKey(const string &v) {
+        if (!root->elementCount)
             return false;
-        bool found = root->remove(v);
-        if (root->c == 0 && !root->leaf) {
-            BNode *oldRoot = root;
-            root = root->children[0];
-            oldRoot->children[0] = nullptr;
+        bool found = root->deleteElement(v);
+        if (root->elementCount == 0 && !root->isLeafNode) {
+            TreeNode *oldRoot = root;
+            root = root->childNodes[0];
+            oldRoot->childNodes[0] = nullptr;
             delete oldRoot;
         }
         return found;
     }
 
-    pair<bool, uint64_t> search(const string &word) {
+    pair<bool, uint64_t> findValue(const string &word) {
         if (!root)
             return {false, 0};
-        return root->search(word);
+        return root->lookup(word);
     }
 
-    bool dump(const string &filename, string &errmsg) {
+    bool saveToFile(const string &filename, string &errmsg) {
         ofstream outFile(filename, std::ios::binary);
         if (!outFile) {
             errmsg = "Cannot open file";
             return false;
         }
-        if (!root->dump(outFile)) {
+        if (!root->serialize(outFile)) {
             errmsg = "Serialize error";
             return false;
         }
         return true;
     }
 
-    bool load(const string &fname, string &errmsg) {
+    bool loadFromFile(const string &fname, string &errmsg) {
         ifstream inFile(fname, std::ios::binary);
         if (!inFile) {
             errmsg = "Cannot open file";
             return false;
         }
-        BNode *newRoot = BNode::load(inFile);
+        TreeNode *newRoot = TreeNode::deserialize(inFile);
         if (!newRoot) {
             errmsg = "Deserialize error";
             return false;
@@ -393,43 +449,70 @@ class BTree {
     }
 };
 
+void processInsertCommand(KeyValueStorage &storage, const string &commandLine) {
+    istringstream parser(commandLine);
+    string operation, term;
+    uint64_t value;
+    parser >> operation >> term >> value;
+    term = normalize_text_case(term);
+    cout << (storage.insertKeyValue(term, value) ? "OK" : "Exist") << '\n';
+}
+
+void processDeleteCommand(KeyValueStorage &storage, const string &commandLine) {
+    string term = normalize_text_case(commandLine.substr(2));
+    cout << (storage.deleteKey(term) ? "OK" : "NoSuchWord") << '\n';
+}
+
+void processFileCommand(KeyValueStorage &storage, const string &commandLine) {
+    istringstream parser(commandLine);
+    string prefix, operation, filePath;
+    parser >> prefix >> operation >> filePath;
+    string errorMessage;
+    if (operation == "Save")
+        cout << (storage.saveToFile(filePath, errorMessage) ? "OK" : "ERROR: " + errorMessage) << '\n';
+    else if (operation == "Load")
+        cout << (storage.loadFromFile(filePath, errorMessage) ? "OK" : "ERROR: " + errorMessage) << '\n';
+}
+
+void processSearchCommand(KeyValueStorage &storage, const string &commandLine) {
+    string term = normalize_text_case(commandLine);
+    auto result = storage.findValue(term);
+    if (result.first)
+        cout << "OK: " << result.second << '\n';
+    else
+        cout << "NoSuchWord\n";
+}
+
+void processCommand(KeyValueStorage &storage, const string &inputLine) {
+    if (inputLine.empty())
+        return;
+    
+    char commandType = inputLine[0];
+    switch (commandType) {
+        case '+':
+            processInsertCommand(storage, inputLine);
+            break;
+        case '-':
+            processDeleteCommand(storage, inputLine);
+            break;
+        case '!':
+            processFileCommand(storage, inputLine);
+            break;
+        default:
+            processSearchCommand(storage, inputLine);
+            break;
+    }
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    BTree tree;
-    string line;
+    KeyValueStorage dataStorage;
+    string inputLine;
 
-    while (getline(cin, line)) {
-        if (line.empty())
-            continue;
-        if (line[0] == '+') {
-            istringstream iss(line);
-            string cmd, word;
-            uint64_t val;
-            iss >> cmd >> word >> val;
-            word = to_lower(word);
-            cout << (tree.add(word, val) ? "OK" : "Exist") << '\n';
-        } else if (line[0] == '-') {
-            string word = to_lower(line.substr(2));
-            cout << (tree.remove(word) ? "OK" : "NoSuchWord") << '\n';
-        } else if (line[0] == '!') {
-            istringstream iss(line);
-            string bang, cmd, path;
-            iss >> bang >> cmd >> path;
-            string err;
-            if (cmd == "Save")
-                cout << (tree.dump(path, err) ? "OK" : "ERROR: " + err) << '\n';
-            else if (cmd == "Load")
-                cout << (tree.load(path, err) ? "OK" : "ERROR: " + err) << '\n';
-        } else {
-            string word = to_lower(line);
-            auto res = tree.search(word);
-            if (res.first)
-                cout << "OK: " << res.second << '\n';
-            else
-                cout << "NoSuchWord\n";
-        }
+    while (getline(cin, inputLine)) {
+        processCommand(dataStorage, inputLine);
     }
     return 0;
 }
