@@ -360,17 +360,54 @@ class KeyValueStorage {
                 return nullptr;
 
             TreeNode *node = new TreeNode(isLeafNode_status);
-            fi.read((char *)(&node->elementCount), sizeof(node->elementCount));
+
+            if (!fi.read((char *)(&node->elementCount), sizeof(node->elementCount))) {
+                delete node;
+                return nullptr;
+            }
+
+            if (node->elementCount < 0 || node->elementCount > 2 * DEGREE_LIMIT - 1) {
+                delete node;
+                return nullptr;
+            }
+
             for (int i = 0; i < node->elementCount; ++i) {
-                size_t len;
-                fi.read((char *)&len, sizeof(len));
-                node->entries[i].resize(len);
-                fi.read(&node->entries[i][0], len);
-                fi.read((char *)&node->data[i], sizeof(node->data[i]));
+                size_t len = 0;
+                if (!fi.read((char *)&len, sizeof(len))) {
+                    delete node;
+                    return nullptr;
+                }
+                if (len > 0) {
+                    try {
+                        node->entries[i].resize(len);
+                    } catch (...) {
+                        delete node;
+                        return nullptr;
+                    }
+                    if (!fi.read(&node->entries[i][0], len)) {
+                        delete node;
+                        return nullptr;
+                    }
+                } else {
+                    node->entries[i].clear();
+                }
+                if (!fi.read((char *)&node->data[i], sizeof(node->data[i]))) {
+                    delete node;
+                    return nullptr;
+                }
             }
             if (!isLeafNode_status) {
                 for (int i = 0; i <= node->elementCount; ++i) {
-                    node->childNodes[i] = deserialize(fi);
+                    TreeNode *child = deserialize(fi);
+                    if (!child) {
+                        for (int j = 0; j < i; ++j) {
+                            delete node->childNodes[j];
+                            node->childNodes[j] = nullptr;
+                        }
+                        delete node;
+                        return nullptr;
+                    }
+                    node->childNodes[i] = child;
                 }
             }
             return node;
@@ -421,10 +458,6 @@ class KeyValueStorage {
 
     bool saveToFile(const string &filename, string &errmsg) {
         ofstream outFile(filename, std::ios::binary);
-        if (!outFile) {
-            errmsg = "Cannot open file";
-            return false;
-        }
         if (!root->serialize(outFile)) {
             errmsg = "Serialize error";
             return false;
@@ -434,15 +467,28 @@ class KeyValueStorage {
 
     bool loadFromFile(const string &fname, string &errmsg) {
         ifstream inFile(fname, std::ios::binary);
-        if (!inFile) {
-            errmsg = "Cannot open file";
-            return false;
+        inFile.seekg(0, std::ios::end);
+        std::streampos fileSize = inFile.tellg();
+        inFile.seekg(0, std::ios::beg);
+        if (fileSize == 0) {
+            TreeNode *emptyRoot = new TreeNode(true);
+            delete root;
+            root = emptyRoot;
+            return true;
         }
+
         TreeNode *newRoot = TreeNode::deserialize(inFile);
         if (!newRoot) {
             errmsg = "Deserialize error";
             return false;
         }
+
+        if (inFile.peek() != EOF) {
+            delete newRoot;
+            errmsg = "Deserialize error";
+            return false;
+        }
+
         delete root;
         root = newRoot;
         return true;
