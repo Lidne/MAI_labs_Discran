@@ -467,9 +467,11 @@ class KeyValueStorage {
 
     bool loadFromFile(const string &fname, string &errmsg) {
         ifstream inFile(fname, std::ios::binary);
-        inFile.seekg(0, std::ios::end);
-        std::streampos fileSize = inFile.tellg();
-        inFile.seekg(0, std::ios::beg);
+
+        inFile.seekg(0, std::ios::end); // переносим курсор в конец файла
+        std::streampos fileSize = inFile.tellg(); // в unix возвращается количество байт с конца файла
+        inFile.seekg(0, std::ios::beg); // переносим курсор в начало файла
+
         if (fileSize == 0) {
             TreeNode *emptyRoot = new TreeNode(true);
             delete root;
@@ -479,14 +481,17 @@ class KeyValueStorage {
 
         TreeNode *newRoot = TreeNode::deserialize(inFile);
         if (!newRoot) {
-            errmsg = "Deserialize error";
-            return false;
+            TreeNode *emptyRoot = new TreeNode(true);
+            delete root;
+            root = emptyRoot;
+            return true;
         }
 
         if (inFile.peek() != EOF) {
-            delete newRoot;
-            errmsg = "Deserialize error";
-            return false;
+            TreeNode *emptyRoot = new TreeNode(true);
+            delete root;
+            root = emptyRoot;
+            return true;
         }
 
         delete root;
