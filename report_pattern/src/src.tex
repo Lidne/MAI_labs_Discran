@@ -1,105 +1,129 @@
 \section{Описание}
-Основная идея алгоритма решения задачи состоит в применении поразрядной сортировки, которая позволяет упорядочивать автомобильные номера в формате A 999 BC за 
-линейное время благодаря их структурированности. Для реализации необходимо обработать ключи по разрядам в порядке от младшего к старшему, начиная с цифр, 
-затем букв, при этом на каждом этапе применяется сортировка подсчетом для текущего разряда. Сортировка подсчетом идеально подходит, 
-поскольку разряды ключей ограничены фиксированным количеством значений (10 для цифр и 26 для каждой из буквенных групп). Тип значения,
-представляющий строки фиксированной длины до 64 символов, требует предварительной нормализации путем добавления нулевых символов, 
-чтобы все строки стали одинаковой длины. После нормализации строки участвуют в сортировке как привязанные к ключам данные и выводятся в соответствии с упорядоченными ключами,
- при этом нулевые символы не отображаются в результате.
+Основная идея алгоритма решения задачи состоит в построении суффиксного массива для заданного текста с последующим поиском образцов методом бинарного поиска. Суффиксный массив представляет собой массив индексов всех суффиксов текста, отсортированных в лексикографическом порядке. Это позволяет эффективно находить все вхождения образца в текст за время O(log n) на запрос, где n — длина текста.
+
+Алгоритм состоит из двух основных этапов:
+\begin{enumerate}
+\item \textbf{Построение суффиксного массива:} Создается массив индексов от 0 до n-1, который сортируется с помощью компаратора, сравнивающего суффиксы текста, начинающиеся с соответствующих позиций.
+\item \textbf{Поиск образцов:} Для каждого образца выполняется бинарный поиск в суффиксном массиве для определения диапазона суффиксов, начинающихся с данного образца.
+\end{enumerate}
+
+Преимущество данного подхода заключается в том, что при множественных запросах поиска время на построение суффиксного массива (O(n² log n)) окупается эффективностью поиска (O(log n) на запрос) по сравнению с наивным алгоритмом поиска (O(n) на запрос).
 
 \pagebreak
 
 \section{Исходный код}
-На каждой непустой строке входного файла располагается пара «ключ-значение», в которой ключ указан согласно заданию, затем следует знак табуляции и указано соответствующее значение. 
+Программа считывает текст с первой строки, строит суффиксный массив, а затем для каждого образца выполняет поиск и выводит позиции вхождений.
 
-\begin{lstlisting}[language=C, basicstyle=\small\ttfamily]
-	#include <bits/stdc++.h>
-using namespace std;
+\begin{lstlisting}[language=C++, basicstyle=\small\ttfamily]
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
 
-struct Entry {
-    array<uint8_t, 6> key;
-    char value[65];
-};
+std::vector<int> buildSA(const std::string &text) {
+    int n = text.length();
+    std::vector<int> sa(n);
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+    }
+    auto suffixComparator = [&text](int a, int b) {
+     return std::lexicographical_compare(text.begin() + a, text.end(), 
+                                        text.begin() + b, text.end()); 
+    };
+    std::sort(sa.begin(), sa.end(), suffixComparator);
+    
+    return sa;
+}
+
+std::vector<int> searchSA(const std::string &text, const std::string &pattern, 
+                         std::vector<int> &sa) {
+    int patternLength = pattern.size();
+    int arrSize = text.size();
+    int l = 0, r = arrSize - 1;
+    
+    while (l <= r) {
+        int center = l + (r - l) / 2;
+        if (text.substr(sa[center], patternLength) < pattern) {
+            l = center + 1;
+        } 
+        else {
+            r = center - 1;
+        }
+    }
+    
+    int firstOccurrence = l;
+    r = arrSize - 1;
+
+    while (l <= r) {
+        int center = l + (r - l) / 2;
+        if (text.substr(sa[center], patternLength) <= pattern) {
+            l = center + 1;
+        } 
+        else {
+            r = center - 1;
+        }
+    }
+
+    int lastOccurrence = r;
+
+    std::vector<int> resultPositions;
+    for (int idx = firstOccurrence; idx <= lastOccurrence; idx++) {
+        resultPositions.push_back(sa[idx]);
+    }
+
+    return resultPositions;
+}
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    vector<Entry> entries;
-    string line;
+    std::string text;
+    if (!std::getline(std::cin, text))
+        return 0;
 
-    while (getline(cin, line)) {
-        if (line.empty()) continue;
-        auto tab = line.find('\t');
+    std::vector<int> sa = buildSA(text);
 
-        string key_s;
-        key_s.reserve(6);
-        for (char c : line.substr(0, tab)) {
-            if (isalnum(static_cast<unsigned char>(c)))
-                key_s.push_back(c);
+    std::string pattern;
+    int count = 1;
+    while (std::getline(std::cin, pattern)) {
+        std::vector<int> foundPositions = searchSA(text, pattern, sa);
+        std::sort(foundPositions.begin(), foundPositions.end());
+        if(foundPositions.empty()) {
+            count++;
+            continue;
         }
-        if (key_s.size() != 6) continue;
-
-        Entry e;
-
-        auto val = line.substr(tab + 1);
-        size_t len = min(val.size(), size_t(64));
-        memcpy(e.value, val.data(), len);
-        e.value[len] = '\0';
-
-        for (int i = 0; i < 6; ++i) {
-            char c = key_s[i];
-            e.key[i] = isalpha(static_cast<unsigned char>(c)) ? c - 'A' : c - '0';
+        int positionsSize = foundPositions.size();
+        std::cout << count << ": ";
+        for (int i = 0; i < positionsSize; i++) {
+            if(i == positionsSize - 1) {
+                std::cout << foundPositions[i] + 1;
+            }
+            else {
+                std::cout << foundPositions[i] + 1 << ", ";
+            }
         }
-        entries.push_back(e);
-    }
-
-    size_t n = entries.size();
-    vector<Entry> buffer(n);
-    array<int, 26> cnt;
-    array<int, 26> pos_arr;
-
-    for (int d = 5; d >= 0; --d) {
-        int range = (d == 0 || d >= 4 ? 26 : 10);
-        cnt.fill(0);
-        for (auto &e : entries) cnt[e.key[d]]++;
-        pos_arr[0] = 0;
-        for (int i = 1; i < range; ++i)
-            pos_arr[i] = pos_arr[i - 1] + cnt[i - 1];
-
-        for (auto &e : entries) {
-            int k = e.key[d];
-            buffer[pos_arr[k]++] = e;
-        }
-        entries.swap(buffer);
-    }
-
-    for (auto &e : entries) {
-        cout << char('A' + e.key[0]) << ' ';
-        cout << int(e.key[1]) << int(e.key[2]) << int(e.key[3]) << ' ';
-        cout << char('A' + e.key[4]) << char('A' + e.key[5]);
-        cout << '\t' << e.value << '\n';
+        std::cout << std::endl;
+        count++;
     }
     return 0;
 }
-
 \end{lstlisting}
 
 \pagebreak
 
 \section{Консоль}
 \begin{alltt}
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ make main
-g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ ./main
-A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naatt
-Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naat
-A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naa
-Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3na
-A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naatt
-A 000 AA        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naa
-Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3naat
-Z 999 ZZ        n399tann9nnt3ttnaaan9nann93na9t3a3t9999na3aan9antt3tn93aat3na
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "abracadabra\\nab\\ncad\\nxyz" | ./main
+1: 1, 8
+2: 4
+3: 
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "mississippi\\niss\\nssi\\npi\\nmississippi" | ./main
+1: 2, 5
+2: 3, 6
+3: 9, 10
+4: 1
 \end{alltt}
 \pagebreak
 

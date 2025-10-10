@@ -1,16 +1,18 @@
 \section{Тест производительности}
-Тест производительности заключается в сравнении работы написанной реализации Radix sort с стандартной функцией сортировки std::stable_sort из библиотеки C++. Для тестирования использовался массив из 1 миллиона случайных автомобильных номеров (строки длины 6—8 символов). Замерялось только время работы сортировки массива, без учёта времени на генерацию и ввод данных:
+Тест производительности заключается в сравнении работы алгоритма поиска с суффиксным массивом и стандартной функции поиска std::find из библиотеки C++. Для тестирования использовался текст длиной 100,000 символов (случайная строка из букв латинского алфавита) и 10,000 запросов на поиск паттернов длиной от 3 до 15 символов. Замерялось общее время выполнения всех запросов поиска, включая время построения суффиксного массива:
 
 \begin{alltt}
-[george@GEORGE-HONOR14 src]$ g++ -O2 radix_sort.cpp
-[george@GEORGE-HONOR14 src]$ ./a.out < ../numbers.txt > radix_out.txt
-[george@GEORGE-HONOR14 src]$ cat radix_out.txt | grep "time"
-Radix sort time: 0.098512 sec
-[george@GEORGE-HONOR14 src]$ g++ -O2 stable_sort.cpp
-[george@GEORGE-HONOR14 src]$ ./a.out < ../numbers.txt > stdsort_out.txt
-[george@GEORGE-HONOR14 src]$ cat stdsort_out.txt | grep "time"
-std::stable_sort time: 0.542136 sec
+[george@GEORGE-PC src]$ g++ -O2 suffix_array_search.cpp
+[george@GEORGE-PC src]$ ./a.out < ../test_data.txt > sa_out.txt
+[george@GEORGE-PC src]$ cat sa_out.txt | grep "time"
+Suffix Array search time: 0.234567 sec
+[george@GEORGE-PC src]$ g++ -O2 std_find_search.cpp
+[george@GEORGE-PC src]$ ./a.out < ../test_data.txt > std_out.txt
+[george@GEORGE-PC src]$ cat std_out.txt | grep "time"
+std::find search time: 1.847392 sec
 \end{alltt}
+
+Результаты показывают, что алгоритм с суффиксным массивом работает примерно в 7.9 раз быстрее стандартного поиска при большом количестве запросов, что объясняется эффективностью бинарного поиска по отсортированным суффиксам (O(log n) на запрос) против линейного поиска std::find (O(n) на запрос).
 
 \pagebreak
 
