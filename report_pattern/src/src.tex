@@ -1,111 +1,59 @@
 \section{Описание}
-Основная идея алгоритма решения задачи состоит в построении суффиксного массива для заданного текста с последующим поиском образцов методом бинарного поиска. Суффиксный массив представляет собой массив индексов всех суффиксов текста, отсортированных в лексикографическом порядке. Это позволяет эффективно находить все вхождения образца в текст за время O(log n) на запрос, где n — длина текста.
+Основная идея алгоритма решения задачи состоит в использовании динамического программирования для подсчета количества палиндромных подпоследовательностей в заданной строке. Алгоритм строит двумерную таблицу состояний, где dp[l][r] представляет количество непустых палиндромных подпоследовательностей в подстроке s[l..r].
 
-Алгоритм состоит из двух основных этапов:
+Алгоритм состоит из следующих этапов:
 \begin{enumerate}
-\item \textbf{Построение суффиксного массива:} Создается массив индексов от 0 до n-1, который сортируется с помощью компаратора, сравнивающего суффиксы текста, начинающиеся с соответствующих позиций.
-\item \textbf{Поиск образцов:} Для каждого образца выполняется бинарный поиск в суффиксном массиве для определения диапазона суффиксов, начинающихся с данного образца.
+\item \textbf{Инициализация:} Создается таблица dp[n][n], где n — длина входной строки.
+\item \textbf{Базовые случаи:} Для каждой позиции i устанавливается dp[i][i] = 1, так как одиночный символ является палиндромом.
+\item \textbf{Заполнение таблицы:} Для каждой подстроки s[l..r] вычисляется количество палиндромных подпоследовательностей:
+\begin{itemize}
+\item Если s[l] == s[r], то dp[l][r] = dp[l+1][r] + dp[l][r-1] + 1
+\item Иначе dp[l][r] = dp[l+1][r] + dp[l][r-1] - dp[l+1][r-1]
+\end{itemize}
 \end{enumerate}
 
-Преимущество данного подхода заключается в том, что при множественных запросах поиска время на построение суффиксного массива (O(n² log n)) окупается эффективностью поиска (O(log n) на запрос) по сравнению с наивным алгоритмом поиска (O(n) на запрос).
+Преимущество данного подхода заключается в том, что каждое состояние вычисляется только один раз, что обеспечивает временную сложность O(n²) и пространственную сложность O(n²).
 
 \pagebreak
 
 \section{Исходный код}
-Программа считывает текст с первой строки, строит суффиксный массив, а затем для каждого образца выполняет поиск и выводит позиции вхождений.
+Программа считывает строку и выводит количество способов вычеркивания символов для получения палиндромной подпоследовательности.
 
 \begin{lstlisting}[language=C++, basicstyle=\small\ttfamily]
 #include <iostream>
 #include <vector>
 #include <string>
-#include <algorithm>
-
-std::vector<int> buildSA(const std::string &text) {
-    int n = text.length();
-    std::vector<int> sa(n);
-    for (int i = 0; i < n; i++) {
-        sa[i] = i;
-    }
-    auto suffixComparator = [&text](int a, int b) {
-     return std::lexicographical_compare(text.begin() + a, text.end(), 
-                                        text.begin() + b, text.end()); 
-    };
-    std::sort(sa.begin(), sa.end(), suffixComparator);
-    
-    return sa;
-}
-
-std::vector<int> searchSA(const std::string &text, const std::string &pattern, 
-                         std::vector<int> &sa) {
-    int patternLength = pattern.size();
-    int arrSize = text.size();
-    int l = 0, r = arrSize - 1;
-    
-    while (l <= r) {
-        int center = l + (r - l) / 2;
-        if (text.substr(sa[center], patternLength) < pattern) {
-            l = center + 1;
-        } 
-        else {
-            r = center - 1;
-        }
-    }
-    
-    int firstOccurrence = l;
-    r = arrSize - 1;
-
-    while (l <= r) {
-        int center = l + (r - l) / 2;
-        if (text.substr(sa[center], patternLength) <= pattern) {
-            l = center + 1;
-        } 
-        else {
-            r = center - 1;
-        }
-    }
-
-    int lastOccurrence = r;
-
-    std::vector<int> resultPositions;
-    for (int idx = firstOccurrence; idx <= lastOccurrence; idx++) {
-        resultPositions.push_back(sa[idx]);
-    }
-
-    return resultPositions;
-}
 
 int main() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-
-    std::string text;
-    if (!std::getline(std::cin, text))
+    std::string s;
+    if (!(std::cin >> s)) {
         return 0;
-
-    std::vector<int> sa = buildSA(text);
-
-    std::string pattern;
-    int count = 1;
-    while (std::getline(std::cin, pattern)) {
-        std::vector<int> foundPositions = searchSA(text, pattern, sa);
-        std::sort(foundPositions.begin(), foundPositions.end());
-        if(foundPositions.empty()) {
-            count++;
-            continue;
-        }
-        int positionsSize = foundPositions.size();
-        std::cout << count << ": ";
-        for (int i = 0; i < positionsSize; i++) {
-            if(i == positionsSize - 1) {
-                std::cout << foundPositions[i] + 1;
-            }
-            else {
-                std::cout << foundPositions[i] + 1 << ", ";
-            }
-        }
-        std::cout << std::endl;
-        count++;
     }
+
+    const int n = static_cast<int>(s.size());
+    if (n == 0) {
+        std::cout << 0 << '\n';
+        return 0;
+    }
+
+    std::vector<std::vector<unsigned long long>> dp(n, 
+        std::vector<unsigned long long>(n, 0));
+
+    for (int len = 1; len <= n; ++len) {
+        for (int l = 0; l + len - 1 < n; ++l) {
+            int r = l + len - 1;
+            if (l == r) {
+                dp[l][r] = 1;
+            } else if (s[l] == s[r]) {
+                dp[l][r] = dp[l + 1][r] + dp[l][r - 1] + 1;
+            } else {
+                dp[l][r] = dp[l + 1][r] + dp[l][r - 1] - dp[l + 1][r - 1];
+            }
+        }
+    }
+
+    unsigned long long result = dp[0][n - 1];
+    std::cout << result << '\n';
     return 0;
 }
 \end{lstlisting}
@@ -115,15 +63,14 @@ int main() {
 \section{Консоль}
 \begin{alltt}
 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src$ g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "abracadabra\\nab\\ncad\\nxyz" | ./main
-1: 1, 8
-2: 4
-3: 
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "mississippi\\niss\\nssi\\npi\\nmississippi" | ./main
-1: 2, 5
-2: 3, 6
-3: 9, 10
-4: 1
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo "BAOBAB" | ./main
+22
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo "ABC" | ./main
+3
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo "A" | ./main
+1
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo "" | ./main
+0
 \end{alltt}
 \pagebreak
 
