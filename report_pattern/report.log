@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.10.10)  25 OCT 2025 14:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.10.10)  26 OCT 2025 21:14
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -906,21 +906,9 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fonts
 /enc/dvips/cm-super/cm-super-t2a.enc}]) (./src/problem.tex
-Overfull \hbox (41.91585pt too wide) in paragraph at lines 11--11
-\T2A/cmr/bx/n/12 Задача:  \T2A/cmr/m/n/12 Требуется разработать программу для п
-одсчета количества способов вычеркивания
- []
-
-
-Overfull \hbox (5.9899pt too wide) in paragraph at lines 11--11
-[]\T2A/cmr/m/n/12 Формат вывода: Необходимо вывести одно число ^^V количество с
-пособов вычеркивания
- []
-
-
-Overfull \hbox (20.02533pt too wide) in paragraph at lines 11--11
-\T2A/cmr/m/n/12 символов для получения палиндромной подпоследовательности. Спос
-обы, отличающиеся
+Overfull \hbox (46.31552pt too wide) in paragraph at lines 13--13
+\T2A/cmr/bx/n/12 Задача:  \T2A/cmr/m/n/12 Требуется разработать программу для р
+азмена заданной суммы M с использованием
  []
 
 ) (./src/src.tex
@@ -932,123 +920,156 @@ been already used, duplicate ignored
                    \relax 
 l.1 \section
             {РћРїРёСЃР°РЅРёРµ} [1]
-Overfull \hbox (34.54184pt too wide) in paragraph at lines 2--3
-\T2A/cmr/m/n/12 в заданной строке. Алгоритм строит двумерную таблицу состояний,
- где dp[l][r] представляет
+Overfull \hbox (32.42096pt too wide) in paragraph at lines 2--3
+\T2A/cmr/m/n/12 для размена заданной суммы с наименьшим количеством монет. Алго
+ритм последовательно
  []
 
 
-Overfull \hbox (6.47935pt too wide) in paragraph at lines 15--16
-[]\T2A/cmr/m/n/12 Преимущество данного подхода заключается в том, что каждое со
-стояние вычисляется
+Overfull \hbox (29.4904pt too wide) in paragraph at lines 6--7
+[]\T2A/cmr/bx/n/12 Инициализация: \T2A/cmr/m/n/12 Создается массив монет с номи
+налами $\OML/cmm/m/it/12 p[]; p[]; :::; p[]$ \T2A/cmr/m/n/12 и счетчиками
+ []
+
+
+Overfull \hbox (2.41428pt too wide) in paragraph at lines 7--8
+[]\T2A/cmr/bx/n/12 Заполнение номиналов: \T2A/cmr/m/n/12 Для каждого индекса i 
+вычисляется номинал монеты
+ []
+
+
+Overfull \hbox (17.91122pt too wide) in paragraph at lines 8--9
+\T2A/cmr/m/n/12 вычисляется максимально возможное количество монет данного номи
+нала, которое
+ []
+
+
+Overfull \hbox (30.80034pt too wide) in paragraph at lines 8--9
+\T2A/cmr/m/n/12 можно использовать для размена оставшейся суммы. Оставшаяся сум
+ма уменьшается
  []
 
 
 
-[2{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-Overfull \hbox (1.74783pt too wide) in paragraph at lines 20--21
-\T2A/cmr/m/n/12 Программа считывает строку и выводит количество способов вычерк
-ивания символов
+[2]
+Overfull \hbox (3.37935pt too wide) in paragraph at lines 20--21
+[]\T2A/cmr/m/n/12 Для произвольных номиналов требуется алгоритм динамического п
+рограммирования,
  []
 
+
+Overfull \hbox (9.08862pt too wide) in paragraph at lines 20--21
+\T2A/cmr/m/n/12 где для каждой суммы от 1 до M хранится минимальное количество 
+монет, необходимое
+ []
+
+
+
+[3{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 (/usr/share/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2024/09/23 1.10c listings language file
 )
 LaTeX Font Info:    Trying to load font information for T2A+cmtt on input line 
-22.
+27.
 
 (/usr/share/texmf-dist/tex/latex/cyrillic/t2acmtt.fd
 File: t2acmtt.fd 2001/08/11 v1.0a Computer Modern Cyrillic font definitions
 )
 LaTeX Font Info:    Font shape `T2A/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T2A/cmtt/m/n' tried instead on input line 23.
+(Font)              Font shape `T2A/cmtt/m/n' tried instead on input line 28.
 
 
-[3]
-Overfull \hbox (7.76785pt too wide) in paragraph at lines 65--65
-[]\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
-bs_Discran/src$
- []
-
-
+[4]
 Overfull \hbox (7.76785pt too wide) in paragraph at lines 66--66
 []\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
 bs_Discran/src$
  []
 
 
-Overfull \hbox (7.76785pt too wide) in paragraph at lines 68--68
+Overfull \hbox (7.76785pt too wide) in paragraph at lines 67--67
 []\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
 bs_Discran/src$
  []
 
 
-Overfull \hbox (7.76785pt too wide) in paragraph at lines 70--70
+Overfull \hbox (7.76785pt too wide) in paragraph at lines 71--71
 []\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
 bs_Discran/src$
  []
 
 
-Overfull \hbox (7.76785pt too wide) in paragraph at lines 72--72
+Overfull \hbox (7.76785pt too wide) in paragraph at lines 77--77
 []\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
 bs_Discran/src$
  []
 
 
-
-[4]) (./src/banchmark.tex
-Overfull \hbox (57.15579pt too wide) in paragraph at lines 6--6
-[]\T2A/cmtt/m/n/12 [george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCD
-EFGHIJKLMNOPQRSTUVWXYZ"
- []
-
-
-Overfull \hbox (378.1774pt too wide) in paragraph at lines 8--8
-[]\T2A/cmtt/m/n/12 [george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCD
-EFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
- []
-
-
-Overfull \hbox (57.15579pt too wide) in paragraph at lines 11--11
-[]\T2A/cmtt/m/n/12 [george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCD
-EFGHIJKLMNOPQRSTUVWXYZ"
- []
-
-
-Overfull \hbox (378.1774pt too wide) in paragraph at lines 13--13
-[]\T2A/cmtt/m/n/12 [george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCD
-EFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
- []
-
-
-
-[5]) (./src/thinks.tex
-Overfull \hbox (70.1138pt too wide) in paragraph at lines 2--3
-\T2A/cmr/m/n/12 алгоритм динамического программирования для подсчета палиндромн
-ых подпоследовательностей
- []
-
-
-Overfull \hbox (31.28775pt too wide) in paragraph at lines 6--7
-[]\T2A/cmr/m/n/12 Реализован алгоритм динамического программирования с использо
-ванием двумерной
- []
-
-
-Overfull \hbox (14.64601pt too wide) in paragraph at lines 7--8
-[]\T2A/cmr/m/n/12 Разработана эффективная схема переходов между состояниями с у
-четом принципа
- []
-
-
-Overfull \hbox (3.54672pt too wide) in paragraph at lines 12--13
-\T2A/cmr/m/n/12 повторных вычислений, что особенно важно при работе с экспоненц
-иально растущими
+Overfull \hbox (7.76785pt too wide) in paragraph at lines 82--82
+[]\T2A/cmtt/m/n/12 george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_la
+bs_Discran/src$
  []
 
 )
 
-[6] (./src/literature.tex
+[5] (./src/banchmark.tex
+Overfull \hbox (1.2626pt too wide) in paragraph at lines 2--3
+\T2A/cmr/m/n/12 параметров с целью проверки корректности работы и производитель
+ности алгоритма. 
+ []
+
+
+Overfull \hbox (13.00754pt too wide) in paragraph at lines 23--24
+[]\T2A/cmr/m/n/12 Результаты показывают, что алгоритм работает эффективно для в
+сех тестовых случаев.
+ []
+
+
+Overfull \hbox (7.94449pt too wide) in paragraph at lines 23--24
+\T2A/cmr/m/n/12 Время выполнения практически не зависит от значения суммы M и о
+стается в пределах
+ []
+
+
+Overfull \hbox (7.77914pt too wide) in paragraph at lines 23--24
+\T2A/cmr/m/n/12 алгоритм имеет временную сложность O(N), где N ^^V количество р
+азличных номиналов
+ []
+
+
+Overfull \hbox (16.7623pt too wide) in paragraph at lines 23--24
+\T2A/cmr/m/n/12 что делает его оптимальным для задачи размена при использовании
+ системы номиналов,
+ []
+
+)
+
+[6] (./src/thinks.tex
+Overfull \hbox (15.78326pt too wide) in paragraph at lines 2--3
+\T2A/cmr/m/n/12 алгоритм размена заданной суммы с использованием жадного подход
+а для специального
+ []
+
+
+Overfull \hbox (24.43526pt too wide) in paragraph at lines 7--8
+[]\T2A/cmr/m/n/12 Разработана эффективная схема последовательного подбора наибо
+льших номиналов
+ []
+
+
+Overfull \hbox (19.536pt too wide) in paragraph at lines 13--14
+\T2A/cmr/m/n/12 систем жадный алгоритм гарантирует оптимальное решение, что дел
+ает его применимым
+ []
+
+)
+
+[7] (./src/literature.tex
+Underfull \hbox (badness 6461) in paragraph at lines 6--7
+\T2A/cmr/m/n/12 URL: \T2A/cmtt/m/n/12 https://ru.wikipedia.org/wiki/Жадный_алго
+ритм \T2A/cmr/m/n/12 (дата обращения:
+ []
+
+
 Underfull \hbox (badness 10000) in paragraph at lines 8--9
 \T2A/cmr/m/n/12 URL: \T2A/cmtt/m/n/12 https://en.cppreference.com/w/cpp/contain
 er/vector \T2A/cmr/m/n/12 (дата
@@ -1056,44 +1077,39 @@ er/vector \T2A/cmr/m/n/12 (дата
 
 
 
-[7{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t2b.enc}])
+[8{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t2b.enc}])
 (./report.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-
-Package rerunfilecheck Warning: File `report.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `report.out':
-(rerunfilecheck)             Before: 7AB4D38A495DB1BEB53C369E69AA5D8F;107
-(rerunfilecheck)             After:  5990932239A137F126BA32BBEBE763B8;663.
+Package rerunfilecheck Info: File `report.out' has not changed.
+(rerunfilecheck)             Checksum: BCC5C487C97AEE2A86A681BA54731168;1178.
  ) 
 Here is how much of TeX's memory you used:
- 15183 strings out of 475171
- 228350 string characters out of 5767094
- 1030057 words of memory out of 5000000
- 37884 multiletter control sequences out of 15000+600000
+ 15199 strings out of 475171
+ 228466 string characters out of 5767094
+ 959057 words of memory out of 5000000
+ 37902 multiletter control sequences out of 15000+600000
  573146 words of font info for 70 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 90i,7n,93p,720b,1293s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/share/t
-exmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/share/texmf-dist/fonts
-/type1/public/cm-super/sfbx1728.pfb></usr/share/texmf-dist/fonts/type1/public/c
-m-super/sfrm1000.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfrm120
-0.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfti1200.pfb></usr/sha
-re/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb></usr/share/texmf-dist/f
-onts/type1/public/cm-super/sftt1200.pfb>
-Output written on report.pdf (8 pages, 213411 bytes).
+ 90i,7n,93p,987b,1293s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texmf-dist/font
+s/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmr8.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy
+10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/sh
+are/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/share/texmf-dist/
+fonts/type1/public/cm-super/sfbx1440.pfb></usr/share/texmf-dist/fonts/type1/pub
+lic/cm-super/sfbx1728.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sf
+rm1000.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfrm1200.pfb></us
+r/share/texmf-dist/fonts/type1/public/cm-super/sfti1200.pfb></usr/share/texmf-d
+ist/fonts/type1/public/cm-super/sftt1095.pfb></usr/share/texmf-dist/fonts/type1
+/public/cm-super/sftt1200.pfb>
+Output written on report.pdf (9 pages, 265466 bytes).
 PDF statistics:
- 161 PDF objects out of 1000 (max. 8388607)
- 131 compressed objects within 2 object streams
- 60 named destinations out of 1000 (max. 500000)
- 9 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 207 PDF objects out of 1000 (max. 8388607)
+ 164 compressed objects within 2 object streams
+ 58 named destinations out of 1000 (max. 500000)
+ 49 words of extra memory for PDF output out of 10000 (max. 10000000)
 

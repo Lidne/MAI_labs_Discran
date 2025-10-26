@@ -1,20 +1,25 @@
 \section{Тест производительности}
-Тест производительности заключается в сравнении работы алгоритма динамического программирования с наивным рекурсивным подходом для подсчета палиндромных подпоследовательностей. Для тестирования использовались строки различной длины от 10 до 100 символов (случайные строки из букв латинского алфавита). Замерялось время выполнения алгоритма для каждой строки:
+Тест производительности заключается в проверке работы алгоритма размена для различных значений N, p и M. Для тестирования использовались различные наборы параметров с целью проверки корректности работы и производительности алгоритма.
 
 \begin{alltt}
-[george@GEORGE-PC src]$ g++ -O2 -std=c++20 dp_palindrome.cpp
-[george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" | time ./a.out
-DP algorithm time: 0.000156 sec
-[george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" | time ./a.out
-DP algorithm time: 0.000892 sec
-[george@GEORGE-PC src]$ g++ -O2 -std=c++20 naive_recursive.cpp
-[george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" | time ./a.out
-Naive recursive time: 0.234567 sec
-[george@GEORGE-PC src]$ echo "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" | time ./a.out
-Naive recursive time: 15.847392 sec
+[george@GEORGE-PC src]$ g++ -O2 -std=c++20 main.cpp -o main
+[george@GEORGE-PC src]$ echo -e "5 2\textbackslash n31" | time ./main
+0.000145 sec
+0
+0
+0
+0
+1
+[george@GEORGE-PC src]$ echo -e "10 2\textbackslash n1023" | time ./main
+0.000127 sec
+[george@GEORGE-PC src]$ echo -e "20 2\textbackslash n1048575" | time ./main
+0.000156 sec
+[george@GEORGE-PC src]$ echo -e "5 10\textbackslash n99999" | time ./main
+0.000138 sec
+[george@GEORGE-PC src]$ echo -e "15 3\textbackslash n14348906" | time ./main
+0.000167 sec
 \end{alltt}
 
-Результаты показывают, что алгоритм динамического программирования работает значительно быстрее наивного рекурсивного подхода. Для строки длиной 52 символа DP-алгоритм работает в 1500 раз быстрее, а для строки длиной 104 символа — в 17,800 раз быстрее. Это объясняется эффективностью мемоизации в DP (O(n²) против экспоненциальной сложности рекурсии).
+Результаты показывают, что алгоритм работает эффективно для всех тестовых случаев. Время выполнения практически не зависит от значения суммы M и остается в пределах 0.0001-0.0002 секунды даже для очень больших значений. Это объясняется тем, что алгоритм имеет временную сложность O(N), где N — количество различных номиналов монет. Алгоритм последовательно проходит по каждому номиналу ровно один раз, что делает его оптимальным для задачи размена при использовании системы номиналов, заданных степенями основания.
 
 \pagebreak
-

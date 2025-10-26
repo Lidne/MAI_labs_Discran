@@ -1,37 +1,33 @@
+#include <cmath>
 #include <iostream>
 #include <vector>
-#include <string>
 
-int main() {
-    std::string s;
-    if (!(std::cin >> s)) {
-        return 0;
+struct Coin {
+    unsigned int value;
+    unsigned int count;
+};
+
+void printShi(std::vector<Coin> arr) {
+    for (auto& coin : arr) {
+        std::cout << coin.count << std::endl;
     }
-
-    const int n = static_cast<int>(s.size());
-    if (n == 0) {
-        std::cout << 0 << '\n';
-        return 0;
-    }
-
-    std::vector<std::vector<unsigned long long>> dp(n, std::vector<unsigned long long>(n, 0));
-
-    for (int len = 1; len <= n; ++len) {
-        for (int l = 0; l + len - 1 < n; ++l) {
-            int r = l + len - 1;
-            if (l == r) {
-                dp[l][r] = 1; // если одна буква
-            } else if (s[l] == s[r]) {
-                dp[l][r] = dp[l + 1][r] + dp[l][r - 1] + 1;
-            } else {
-                dp[l][r] = dp[l + 1][r] + dp[l][r - 1] - dp[l + 1][r - 1];
-            }
-        }
-    }
-
-    unsigned long long result = dp[0][n - 1];
-    std::cout << result << '\n';
-    return 0;
 }
 
+int main() {
+    unsigned int N, p, M;
+    std::cin >> N >> p >> M;
+    std::vector<Coin> arr(N);
+    for (size_t idx = 0; idx < N; ++idx) {
+        arr[idx].value = pow(p, idx);
+    }
+    // printShi(arr);
 
+    size_t i = N - 1;
+    while (M != 0) {
+        arr[i].count = M / arr[i].value;
+        M -= arr[i].count * arr[i].value;
+        --i;
+    }
+    printShi(arr);
+    return 0;
+}
