@@ -1,33 +1,56 @@
-#include <cmath>
 #include <iostream>
 #include <vector>
+#include <limits>
 
-struct Coin {
-    unsigned int value;
-    unsigned int count;
+struct Edge {
+    int from;
+    int to;
+    long long weight;
 };
 
-void printShi(std::vector<Coin> arr) {
-    for (auto& coin : arr) {
-        std::cout << coin.count << std::endl;
-    }
-}
-
 int main() {
-    unsigned int N, p, M;
-    std::cin >> N >> p >> M;
-    std::vector<Coin> arr(N);
-    for (size_t idx = 0; idx < N; ++idx) {
-        arr[idx].value = pow(p, idx);
-    }
-    // printShi(arr);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
-    size_t i = N - 1;
-    while (M != 0) {
-        arr[i].count = M / arr[i].value;
-        M -= arr[i].count * arr[i].value;
-        --i;
+    int n, m, start, finish;
+    std::cin >> n >> m >> start >> finish;
+
+    std::vector<Edge> edges;
+    edges.reserve(m);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        std::cin >> u >> v >> w;
+        edges.push_back({u - 1, v - 1, w});
     }
-    printShi(arr);
+
+    const long long INF = 10000000000LL;
+    std::vector<long long> dist(n, INF);
+    dist[start - 1] = 0;
+
+    for (int i = 0; i < n - 1; ++i) {
+        bool updated = false;
+        for (const auto& edge : edges) {
+            if (dist[edge.from] == INF) {
+                continue;
+            }
+            const long long candidate = dist[edge.from] + edge.weight;
+            if (candidate < dist[edge.to]) {
+                dist[edge.to] = candidate;
+                updated = true;
+            }
+        }
+        if (!updated) {
+            break;
+        }
+    }
+
+    const long long answer = dist[finish - 1];
+    if (answer == INF) {
+        std::cout << "No solution\n";
+    } else {
+        std::cout << answer << '\n';
+    }
+
     return 0;
 }
