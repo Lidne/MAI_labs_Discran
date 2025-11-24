@@ -1,60 +1,85 @@
 \section{Описание}
-Основная идея алгоритма решения задачи состоит в использовании жадного подхода для размена заданной суммы с наименьшим количеством монет. Алгоритм последовательно подбирает наибольшие возможные номиналы монет.
+Задача заключается в поиске кратчайшего пути между двумя вершинами ориентированного графа с возможными отрицательными весами. Для её решения использован алгоритм Беллмана--Форда, оперирующий массивом рёбер и массивом расстояний до вершин. Хранится структура \texttt{Edge} с полями начала, конца и веса ребра, а расстояния задаются в \texttt{std::vector<long long>}.
 
-Алгоритм состоит из следующих этапов:
+Алгоритм проходит следующие этапы:
 \begin{enumerate}
-\item \textbf{Инициализация:} Создается массив монет с номиналами $p^0, p^1, ..., p^{N-1}$ и счетчиками количества каждой монеты.
-\item \textbf{Заполнение номиналов:} Для каждого индекса i вычисляется номинал монеты как $p^i$.
-\item \textbf{Размен суммы:} Начиная с наибольшего номинала, для каждого номинала вычисляется максимально возможное количество монет данного номинала, которое можно использовать для размена оставшейся суммы. Оставшаяся сумма уменьшается на соответствующее значение.
+\item \textbf{Чтение входа.} Вершины переводятся в нулевую индексацию, чтобы удобно обращаться к массивам.
+\item \textbf{Инициализация.} Вектор расстояний заполняется большой константой \texttt{INF}, за исключением вершины \texttt{start}, чья дистанция равна нулю.
+\item \textbf{Релаксации.} Внешний цикл повторяется не более $n-1$ раз, а на каждой итерации рассматриваются все рёбра. Если на очередном проходе не произошло ни одной релаксации, цикл прерывается заранее.
+\item \textbf{Получение ответа.} Если дойти до вершины \texttt{finish} не удалось, выводится сообщение \enquote{No solution}, иначе печатается накопленная сумма весов.
 \end{enumerate}
 
-Преимущество данного подхода заключается в том, что для специального случая, когда номиналы являются степенями некоторого основания p, жадный алгоритм гарантирует оптимальное решение с временной сложностью O(N).
+Ранний выход сокращает число проходов по рёбрам для графов, где расстояния стабилизируются быстрее, а использование 64-битных целых позволяет безопасно хранить суммы весов в заданных пределах.
 
 \pagebreak
 
-\section{Обоснование неприменимости жадного алгоритма в общем случае}
-В общем случае, когда номиналы могут быть произвольными, жадный алгоритм не всегда дает оптимальное решение. 
+\section{Корректность и оценка сложности}
+Алгоритм Беллмана--Форда опирается на свойство, что после $k$ полных релаксаций корректно вычислены кратчайшие пути, использующие не более $k$ рёбер. В графе без отрицательных циклов любой кратчайший путь между двумя вершинами состоит максимум из $n-1$ рёбер, поэтому достаточно выполнить не более $n-1$ итераций. Условие задачи гарантирует отсутствие циклов отрицательного веса, а значит после завершения цикла массив \texttt{dist} содержит искомые расстояния для всех достижимых вершин.
 
-\textbf{Контрпример:} Рассмотрим набор монет с номиналами \{1, 3, 4\} и сумму 6. Жадный алгоритм выберет: 4 (1 монета) + 1 + 1 (2 монеты) = 3 монеты. Однако оптимальное решение: 3 + 3 (2 монеты).
+Для вершины \texttt{finish} отдельно проверяется, изменилась ли её оценка. Если она осталась равной \texttt{INF}, значит путь недостижим и следует вывести \enquote{No solution}. Иначе выводится накопленная стоимость и задача считается решённой.
 
-Для произвольных номиналов требуется алгоритм динамического программирования, где для каждой суммы от 1 до M хранится минимальное количество монет, необходимое для ее размена. Временная сложность такого алгоритма O(N × M), что делает его применимым для произвольных входных данных.
+Асимптотика составляет $O(n \cdot m)$ операций, где $n$ — число вершин, $m$ — число рёбер. Память расходуется линейно: на хранение всех рёбер и массива расстояний требуется $O(n + m)$.
 
 \pagebreak
 
 \section{Исходный код}
-Программа считывает параметры N, p и сумму M, затем выводит количество монет каждого номинала для размена суммы.
+Программа считывает параметры графа, формирует список рёбер и запускает алгоритм Беллмана--Форда с ранним выходом при отсутствии новых релаксаций.
 
 \begin{lstlisting}[language=C++, basicstyle=\small\ttfamily]
-#include <cmath>
 #include <iostream>
 #include <vector>
+#include <limits>
 
-struct Coin {
-    unsigned int value;
-    unsigned int count;
+struct Edge {
+    int from;
+    int to;
+    long long weight;
 };
 
-void printShi(std::vector<Coin> arr) {
-    for (auto& coin : arr) {
-        std::cout << coin.count << std::endl;
-    }
-}
-
 int main() {
-    unsigned int N, p, M;
-    std::cin >> N >> p >> M;
-    std::vector<Coin> arr(N);
-    for (size_t idx = 0; idx < N; ++idx) {
-        arr[idx].value = pow(p, idx);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    int n, m, start, finish;
+    std::cin >> n >> m >> start >> finish;
+
+    std::vector<Edge> edges;
+    edges.reserve(m);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        std::cin >> u >> v >> w;
+        edges.push_back({u - 1, v - 1, w});
     }
 
-    size_t i = N - 1;
-    while (M != 0) {
-        arr[i].count = M / arr[i].value;
-        M -= arr[i].count * arr[i].value;
-        --i;
+    const long long INF = 10000000000LL;
+    std::vector<long long> dist(n, INF);
+    dist[start - 1] = 0;
+
+    for (int i = 0; i < n - 1; ++i) {
+        bool updated = false;
+        for (const auto& edge : edges) {
+            if (dist[edge.from] == INF) {
+                continue;
+            }
+            const long long candidate = dist[edge.from] + edge.weight;
+            if (candidate < dist[edge.to]) {
+                dist[edge.to] = candidate;
+                updated = true;
+            }
+        }
+        if (!updated) {
+            break;
+        }
     }
-    printShi(arr);
+
+    const long long answer = dist[finish - 1];
+    if (answer == INF) {
+        std::cout << "No solution\n";
+    } else {
+        std::cout << answer << '\n';
+    }
+
     return 0;
 }
 \end{lstlisting}
@@ -63,32 +88,23 @@ int main() {
 
 \section{Консоль}
 \begin{alltt}
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI_labs_Discran/src\$ g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "3 2\textbackslash n5" | ./main
-0
-0
-1
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "5 3\textbackslash n100" | ./main
-1
-0
-0
-1
-2
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "4 5\textbackslash n200" | ./main
-0
-0
-0
-8
-george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ echo -e "10 2\textbackslash n1023" | ./main
-1
-1
-1
-1
-1
-1
-1
-1
-1
-1
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ g++ -O2 -std=c++20 -Wall -Wextra -o main main.cpp
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ cat <<'EOF' | ./main
+5 6 1 5
+1 2 2
+1 3 0
+3 2 -1
+2 4 1
+3 4 4
+4 5 5
+EOF
+5
+george@GEORGE-PC:/mnt/c/Users/george/Projects/MaiLabs/MAI\_labs\_Discran/src\$ cat <<'EOF' | ./main
+3 3 3 1
+1 2 4
+2 3 -7
+1 3 10
+EOF
+No solution
 \end{alltt}
 \pagebreak
