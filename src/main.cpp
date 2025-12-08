@@ -69,21 +69,12 @@ int main() {
 
     vector<Segment> segs(n);
     vector<int> coords;
-    coords.reserve(2 * n + m);
+    coords.reserve(2 * n);
 
     for (int i = 0; i < n; ++i) {
         cin >> segs[i].l >> segs[i].r >> segs[i].h;
         coords.push_back(segs[i].l);
         coords.push_back(segs[i].r + 1);
-    }
-
-    struct Query {
-        int x, y;
-    };
-    vector<Query> queries(m);
-    for (int i = 0; i < m; ++i) {
-        cin >> queries[i].x >> queries[i].y;
-        coords.push_back(queries[i].x);
     }
 
     sort(coords.begin(), coords.end());
@@ -111,8 +102,8 @@ int main() {
     }
 
     for (int i = 0; i < m; ++i) {
-        int x = queries[i].x;
-        int y = queries[i].y;
+        int x, y;
+        cin >> x >> y; // я так понял что такое полный онлайн режим
 
         auto it = lower_bound(history.begin(), history.end(), y, [](const pair<int, int>& p, int val) {
             return p.first > val;
@@ -120,9 +111,13 @@ int main() {
 
         int ans = 0;
         if (it != history.begin()) {
-            int ver_root = prev(it)->second;
-            int x_pos = get_pos(x);
-            ans = query(ver_root, 0, sz - 1, x_pos);
+            int virt_root = prev(it)->second;
+
+            auto x_it = upper_bound(coords.begin(), coords.end(), x);
+            if (x_it != coords.begin()) {
+                int x_pos = prev(x_it) - coords.begin();
+                ans = query(virt_root, 0, sz - 1, x_pos);
+            }
         }
 
         cout << ans << "\n";
